@@ -16,6 +16,7 @@
     }
   ],
   "installCommand": "npm install --legacy-peer-deps && npm install --prefix ../backend",
+  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/manifest.json",
