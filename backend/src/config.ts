@@ -20,6 +20,12 @@ export const config = {
     guildPermissions:   required("GUILD_PERMISSIONS_ADDRESS") as `0x${string}`,
     taskCoordinator:    required("TASK_COORDINATOR_ADDRESS") as `0x${string}`,
   },
+  // Celo Builders attribution tag (ERC-8021) — from registration
+  attributionTag:       process.env.ATTRIBUTION_TAG ?? "",
+  // x402 facilitator URL for Track 2 payments
+  x402FacilitatorUrl:   process.env.X402_FACILITATOR_URL ?? "https://x402.celo.org",
+  // USDC address on Celo mainnet (EIP-3009 compatible)
+  usdcAddress:          (process.env.USDC_ADDRESS ?? "0xcebA9300f2b948710d2653dD7B07f33A8B32118C") as `0x${string}`,
 } as const;
 
 // ── Minimal ABIs (only functions the backend calls) ───────────────────────────
