@@ -9,9 +9,9 @@
  *   4. Returns its output
  */
 
-import { createWalletClient, http, type Address } from "viem";
+import { createWalletClient, http, encodeFunctionData, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { chain, publicClient } from "./chain";
+import { chain, publicClient, appendAttributionTag } from "./chain";
 import { config, agentRegistryAbi, taskCoordinatorAbi } from "./config";
 import { veniceChat } from "./agents/venice";
 
@@ -87,13 +87,16 @@ export async function runAgent(
   for (const subCap of subs) {
     const subAgent = await findAgent(subCap);
     // Agent hires the sub-agent on-chain using its own wallet (A2A payment)
-    const hash = await agentWallet.writeContract({
-      chain,
-      account: agentAccount,
-      address: config.contracts.taskCoordinator,
+    const calldata = encodeFunctionData({
       abi: taskCoordinatorAbi,
       functionName: "hireAgent",
       args: [taskId, subAgent],
+    });
+    const hash = await agentWallet.sendTransaction({
+      chain,
+      account: agentAccount,
+      to: config.contracts.taskCoordinator,
+      data: appendAttributionTag(calldata),
     });
     await publicClient.waitForTransactionReceipt({ hash });
     txHashes.push(hash);
