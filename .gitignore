@@ -13,3 +13,8 @@ scripts/
 # temp
 *.sh.bak
 /tmp
+
+# opencode / claude skills (local tool config)
+.agents/
+.claude/
+skills-lock.json
