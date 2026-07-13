@@ -210,6 +210,53 @@ app.post("/build", limiter, async (req: Request, res: Response, next: NextFuncti
   } catch (err) { next(err); }
 });
 
+/**
+ * POST /erc8004/register
+ * Register the AI-Net coordinator as an ERC-8004 agent on Celo Mainnet
+ */
+app.post("/erc8004/register", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await registerAgentIdentity();
+    res.json({
+      success: true,
+      agentId: result.agentId.toString(),
+      txHash: result.txHash,
+      scanUrl: `https://8004scan.io/agents/celo/${result.agentId}`,
+      celoscanUrl: `https://celoscan.io/nft/0x8004a169fb4a3325136eb29fa0ceb6d2e539a432/${result.agentId}`,
+    });
+  } catch (err) { next(err); }
+});
+
+/**
+ * POST /erc8004/check
+ * Check if an ERC-8004 agent identity exists
+ */
+app.post("/erc8004/check", limiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId } = req.body as { agentId: string };
+    if (!agentId) {
+      res.status(400).json({ error: "agentId is required" });
+      return;
+    }
+    const identity = await getAgentIdentity(BigInt(agentId));
+    if (!identity) {
+      res.json({ exists: false });
+      return;
+    }
+    res.json({
+      exists: true,
+      agentId,
+      uri: identity.uri,
+      wallet: identity.wallet,
+      scanUrl: `https://8004scan.io/agents/celo/${agentId}`,
+    });
+  } catch (err) { next(err); }
+});
+
+// ── x402 Pay-Per-Call Routes ─────────────────────────────────────────────────
+// Mount x402 routes under /x402 prefix for Track 2 (Most x402 Payments)
+app.use("/x402", x402App);
+
 // ── Error handler ─────────────────────────────────────────────────────────────
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error("[Server error]", err.message);
