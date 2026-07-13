@@ -270,5 +270,7 @@ if (!process.env.VERCEL) {
     console.log(`[AI-Net] Backend running on port ${config.port}`);
     console.log(`[AI-Net] Chain ID: ${config.chainId}`);
     console.log(`[AI-Net] TaskCoordinator: ${config.contracts.taskCoordinator}`);
+    console.log(`[AI-Net] Attribution Tag: ${config.attributionTag || "NOT SET"}`);
+    console.log(`[AI-Net] x402 Facilitator: ${config.x402FacilitatorUrl}`);
   });
 }
