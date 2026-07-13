@@ -22,7 +22,12 @@ const limiter = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true, le
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 app.get("/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok", chain: config.chainId });
+  res.json({
+    status: "ok",
+    chain: config.chainId,
+    attributionTag: config.attributionTag || "not configured",
+    x402Facilitator: config.x402FacilitatorUrl,
+  });
 });
 
 /**
