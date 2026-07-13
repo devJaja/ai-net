@@ -1,5 +1,5 @@
-import { parseEther, type Address } from "viem";
-import { publicClient, walletClient, account, chain } from "./chain";
+import { parseEther, encodeFunctionData, type Address } from "viem";
+import { publicClient, walletClient, account, chain, appendAttributionTag } from "./chain";
 import { config, agentRegistryAbi, taskCoordinatorAbi } from "./config";
 import { runResearch } from "./agents/research";
 import { runRiskAnalysis } from "./agents/risk";
