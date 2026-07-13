@@ -7,6 +7,12 @@ import { runCoordinator } from "./coordinator";
 import { runAgent, type Capability } from "./agentRunner";
 import { buildProject } from "./builder";
 
+// ── x402 Pay-Per-Call Server ──────────────────────────────────────────────────
+import x402App from "./x402-server";
+
+// ── ERC-8004 Agent Identity ───────────────────────────────────────────────────
+import { registerAgentIdentity, getAgentIdentity } from "./erc8004";
+
 const app = express();
 app.use(cors());
 app.use(express.json());
