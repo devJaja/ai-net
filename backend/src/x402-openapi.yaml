@@ -1,0 +1,177 @@
+openapi: 3.0.3
+info:
+  title: AI-Net x402 Pay-Per-Call API
+  description: |
+    USDC micropayment endpoints for AI agent capabilities.
+    Each endpoint follows the x402 protocol: request → 402 Payment Required →
+    EIP-3009 transferWithAuthorization → x402.celo.org facilitator settle → response.
+  version: 1.0.0
+  contact:
+    name: AI-Net
+    url: https://github.com/devJaja/ai-net
+
+servers:
+  - url: http://localhost:3001
+    description: Local development
+  - url: https://ai-net.vercel.app
+    description: Production
+
+paths:
+  /x402/capabilities:
+    get:
+      summary: List available x402 agent capabilities
+      operationId: getCapabilities
+      tags: [Discovery]
+      responses:
+        "200":
+          description: List of available agent endpoints with pricing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  capabilities:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Capability"
+                  facilitatorUrl:
+                    type: string
+                  usdcAddress:
+                    type: string
+
+  /x402/agent/{capability}:
+    post:
+      summary: Execute an agent capability (x402 payment required)
+      operationId: executeAgent
+      tags: [Agents]
+      parameters:
+        - name: capability
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [research, risk, coding, design, audit, report, analyze, validate, format, summarize, translate, classify]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentRequest"
+      responses:
+        "200":
+          description: Agent execution result with payment receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentResponse"
+        "402":
+          description: Payment required — x402 payment headers needed
+          headers:
+            X-PAYMENT:
+              description: x402 payment requirement details
+              schema:
+                type: object
+
+  /x402/batch:
+    post:
+      summary: Execute multiple agent capabilities in one request
+      operationId: batchExecute
+      tags: [Batch]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requests:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/BatchItem"
+      responses:
+        "200":
+          description: Batch execution results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AgentResponse"
+
+  /x402/health:
+    get:
+      summary: x402 server health check
+      operationId: healthCheck
+      tags: [System]
+      responses:
+        "200":
+          description: Server status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  facilitator:
+                    type: string
+                  usdc:
+                    type: string
+
+components:
+  schemas:
+    Capability:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: string
+          description: Price in USDC
+
+    AgentRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          description: Task description or prompt for the agent
+        context:
+          type: string
+          description: Optional additional context
+
+    AgentResponse:
+      type: object
+      properties:
+        capability:
+          type: string
+        output:
+          type: string
+        agent:
+          type: string
+          description: Agent wallet address
+        paymentReceipt:
+          type: object
+          properties:
+            txHash:
+              type: string
+            amount:
+              type: string
+            token:
+              type: string
+
+    BatchItem:
+      type: object
+      required: [capability, prompt]
+      properties:
+        capability:
+          type: string
+        prompt:
+          type: string
+        context:
+          type: string
