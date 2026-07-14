@@ -24,8 +24,9 @@ contract AINetIntegrationTest is Test {
         guildPerms   = new GuildPermissions();
         registry     = new AgentRegistry();
         coordinator  = new TaskCoordinator(
+            address(registry),
             address(guildPerms),
-            address(registry)
+            address(this)
         );
 
         // Register agents
