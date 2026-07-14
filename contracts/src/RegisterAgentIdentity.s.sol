@@ -2,8 +2,6 @@
 pragma solidity ^0.8.25;
 
 import "forge-std/Script.sol";
-import {createPublicClient, http, createWalletClient, defineChain} from "viem";
-import {celo} from "viem/chains";
 
 /// @title RegisterAgent — Registers an ERC-8004 agent identity on Celo Mainnet
 contract RegisterAgent is Script {
@@ -17,12 +15,10 @@ contract RegisterAgent is Script {
     function run(string calldata metadataUri) external {
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
 
-        // Encode the register call
         bytes memory data = abi.encodeWithSelector(REGISTER_SELECTOR, metadataUri);
 
         vm.startBroadcast(privateKey);
 
-        // Send the registration transaction
         (bool success,) = IDENTITY_REGISTRY.call(data);
         require(success, "ERC-8004 registration failed");
 
