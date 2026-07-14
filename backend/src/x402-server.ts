@@ -12,7 +12,7 @@ import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { config } from "./config";
 import { account } from "./chain";
-import { veniceChat } from "./agents/venice.js";
+import { veniceChat } from "./agents/venice";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 

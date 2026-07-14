@@ -1,4 +1,4 @@
-import { veniceChat } from "./venice.js";
+import { veniceChat } from "./venice";
 
 const SYSTEM = `You are a risk analysis specialist. Identify key risks: regulatory, competitive, financial, and operational. Rate each High/Medium/Low and suggest mitigations. Be concise.`;
 
