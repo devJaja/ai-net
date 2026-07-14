@@ -9,7 +9,7 @@ function required(key: string): string {
 export const config = {
   rpcUrl:               required("RPC_URL"),
   chainId:              Number(required("CHAIN_ID")),
-  coordinatorKey:       required("COORDINATOR_PRIVATE_KEY") as `0x${string}`,
+  coordinatorKey:       (required("COORDINATOR_PRIVATE_KEY").startsWith("0x") ? required("COORDINATOR_PRIVATE_KEY") : `0x${required("COORDINATOR_PRIVATE_KEY")}`) as `0x${string}`,
   veniceApiKey:         required("VENICE_API_KEY"),
   veniceBaseUrl:        process.env.VENICE_BASE_URL ?? "https://api.venice.ai/api/v1",
   oneshotApiKey:        required("ONESHOT_API_KEY"),

@@ -1,4 +1,4 @@
-import { veniceChat } from "./venice.js";
+import { veniceChat } from "./venice";
 
 const SYSTEM = `You are a senior Figma designer. Output a complete, structured design specification exactly as Figma would document it — not prose descriptions, but precise design tokens and component specs a developer can implement directly.
 

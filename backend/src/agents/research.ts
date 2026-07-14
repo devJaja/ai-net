@@ -1,4 +1,4 @@
-import { veniceChat } from "./venice.js";
+import { veniceChat } from "./venice";
 
 const SYSTEM = `You are a market research specialist. Given a task description, 
 produce concise, factual market research: key players, market size, growth trends, 

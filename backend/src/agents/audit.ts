@@ -1,4 +1,4 @@
-import { veniceChat } from "./venice.js";
+import { veniceChat } from "./venice";
 
 const SYSTEM = `You are a quality auditor. Review the provided outputs for accuracy and completeness. Give a verdict (PASS/FAIL/NEEDS_REVISION) and list key findings. Be concise.`;
 

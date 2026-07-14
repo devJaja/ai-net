@@ -7,7 +7,7 @@ import { runReport } from "./agents/report";
 import { runCoding } from "./agents/coding";
 import { runDesign } from "./agents/design";
 import { runAudit } from "./agents/audit";
-import { veniceChat } from "./agents/venice.js";
+import { veniceChat } from "./agents/venice";
 
 const VENICE_HOST = "api.venice.ai";
 
