@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Sparkles, Loader2, CheckCircle, ChevronDown, ChevronUp, AlertCircle, Zap, Wand2, RefreshCw } from "lucide-react";
+import { Send, Sparkles, Loader2, CheckCircle, ChevronDown, ChevronUp, AlertCircle, Wand2, RefreshCw } from "lucide-react";
 import { CAPABILITIES, CONTRACTS, BACKEND_URL } from "@/lib/constants";
 import { encodeFunctionData, createWalletClient, custom } from "viem";
 import { celo } from "viem/chains";
@@ -42,7 +42,7 @@ export function TaskCreator({ onTaskComplete }: Props) {
   const [feedback,     setFeedback]     = useState<Record<string, string>>({});
   const [enhanced,     setEnhanced]     = useState<Record<string, string>>({});
 
-  const { connected, address, smartAccount, connect } = useWallet();
+  const { connected, address, connect } = useWallet();
   const { isMiniPay, address: miniPayAddress, client: miniPayClient } = useMiniPay();
 
   const busy = step !== "idle" && step !== "done" && step !== "error";
@@ -165,7 +165,6 @@ export function TaskCreator({ onTaskComplete }: Props) {
           <h2 className="text-xl font-bold text-white">Create New Task</h2>
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-sm text-zinc-400">Autonomous agents · on-chain payments · Venice AI</p>
-            {smartAccount && <span className="flex items-center gap-1 text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full"><Zap className="w-3 h-3" />Smart Account</span>}
           </div>
         </div>
         {/* Auto / Manual toggle */}

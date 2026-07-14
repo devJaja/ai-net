@@ -1,10 +1,10 @@
 "use client";
 
-import { Wallet, Copy, Check, ExternalLink, Zap, AlertCircle } from "lucide-react";
+import { Wallet, Copy, Check, ExternalLink, AlertCircle } from "lucide-react";
 import { useWallet } from "@/hooks/use-wallet";
 
 export function WalletConnect() {
-  const { connected, address, connecting, connect, copyAddress, copied, smartAccount, connectError } = useWallet();
+  const { connected, address, connecting, connect, copyAddress, copied, connectError } = useWallet();
 
   if (!connected) {
     return (
@@ -29,9 +29,7 @@ export function WalletConnect() {
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/[0.04]">
-      {smartAccount
-        ? <Zap className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-        : <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />}
+      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
       <span className="text-sm font-medium text-slate-200 font-mono">
         {address.slice(0, 6)}…{address.slice(-4)}
       </span>
