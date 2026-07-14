@@ -179,7 +179,7 @@ app.use(express.json());
  * GET /x402/capabilities
  * List available agent services and their prices
  */
-app.get("/x402/capabilities", (_req: Request, res: Response) => {
+app.get("/capabilities", (_req: Request, res: Response) => {
   res.json({
     capabilities: AGENT_CAPABILITIES.map(c => ({
       id: c.id,
@@ -200,7 +200,7 @@ app.get("/x402/capabilities", (_req: Request, res: Response) => {
  * Pay-per-call agent endpoint. If no payment header, returns 402 with requirements.
  * If payment is valid, settles and returns the agent's response.
  */
-app.post("/x402/agent/:capability", async (req: Request, res: Response) => {
+app.post("/agent/:capability", async (req: Request, res: Response) => {
   const { capability } = req.params;
   const { task, context = "" } = req.body as { task?: string; context?: string };
 
@@ -308,7 +308,7 @@ app.post("/x402/agent/:capability", async (req: Request, res: Response) => {
  * GET /x402/health
  * Health check for the x402 server
  */
-app.get("/x402/health", (_req: Request, res: Response) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     protocol: "x402",
@@ -324,7 +324,7 @@ app.get("/x402/health", (_req: Request, res: Response) => {
  * Batch multiple x402 payments in one request.
  * Each item in the batch is a separate payment (counts separately on leaderboard).
  */
-app.post("/x402/batch", async (req: Request, res: Response) => {
+app.post("/batch", async (req: Request, res: Response) => {
   const { items } = req.body as { items?: Array<{ capability: string; task: string; context?: string }> };
 
   if (!items?.length) {

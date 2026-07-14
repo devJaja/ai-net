@@ -151,34 +151,39 @@ export function getRunnerStats() {
 
 // ── CLI Entry Point ───────────────────────────────────────────────────────────
 
-const args = process.argv.slice(2);
+// Only auto-start when run directly, not when imported by server.ts
+const isDirectRun = require.main === module;
 
-if (args.includes("--daemon")) {
-  daemon(DEFAULT_CONFIG).catch((err) => {
-    console.error("[Runner] Fatal error:", err);
-    process.exit(1);
-  });
+if (isDirectRun) {
+  const args = process.argv.slice(2);
 
-  // Graceful shutdown
-  process.on("SIGINT", () => {
-    console.log("\n[Runner] Shutting down...");
-    running = false;
-  });
-  process.on("SIGTERM", () => {
-    running = false;
-  });
-} else {
-  // Single run
-  runSingleTask(DEFAULT_CONFIG)
-    .then((result) => {
-      if (result) {
-        console.log("\n[Runner] Done. Transaction hashes:");
-        result.txHashes.forEach((tx, i) => console.log(`  ${i + 1}. ${tx}`));
-      }
-      process.exit(0);
-    })
-    .catch((err) => {
+  if (args.includes("--daemon")) {
+    daemon(DEFAULT_CONFIG).catch((err) => {
       console.error("[Runner] Fatal error:", err);
       process.exit(1);
     });
+
+    // Graceful shutdown
+    process.on("SIGINT", () => {
+      console.log("\n[Runner] Shutting down...");
+      running = false;
+    });
+    process.on("SIGTERM", () => {
+      running = false;
+    });
+  } else {
+    // Single run
+    runSingleTask(DEFAULT_CONFIG)
+      .then((result) => {
+        if (result) {
+          console.log("\n[Runner] Done. Transaction hashes:");
+          result.txHashes.forEach((tx, i) => console.log(`  ${i + 1}. ${tx}`));
+        }
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error("[Runner] Fatal error:", err);
+        process.exit(1);
+      });
+  }
 }

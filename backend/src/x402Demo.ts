@@ -1,67 +1,42 @@
 /**
- * x402 Demo — generates Track 2 volume by calling x402 pay-per-call endpoints.
+ * x402 Demo — generates Track 2 volume using the official x402 SDK.
  *
- * This script creates a wallet, funds it with USDC (or uses existing balance),
- * and makes repeated calls to the x402 agent endpoints. Each call settles a real
- * USDC micropayment through the Celo facilitator.
+ * Uses @x402/fetch + @x402/evm to sign real EIP-3009 USDC payments
+ * through the Celo facilitator. Each call settles a real on-chain micropayment
+ * with the attribution tag, counting toward Track 1 and Track 2.
  *
  * Usage:
  *   npx ts-node src/x402Demo.ts                  # single test call
  *   npx ts-node src/x402Demo.ts --bulk 20        # make 20 calls
  *   npx ts-node src/x402Demo.ts --daemon         # continuous loop
  */
-
 import "dotenv/config";
+import { privateKeyToAccount } from "viem/accounts";
+import { createPublicClient, http } from "viem";
+import { celo } from "viem/chains";
+import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
+import { ExactEvmScheme, toClientEvmSigner } from "@x402/evm";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const X402_SERVER_URL = process.env.X402_SERVER_URL ?? "http://localhost:3001";
+const X402_SERVER_URL = process.env.X402_SERVER_URL ?? "http://localhost:3000";
+const PRIVATE_KEY = (process.env.COORDINATOR_PRIVATE_KEY ?? "") as `0x${string}`;
+const RPC_URL = "https://forno.celo.org";
 
-// ── x402 Client ───────────────────────────────────────────────────────────────
+// ── x402 Client Setup ────────────────────────────────────────────────────────
 
-interface X402Capabilities {
-  capabilities: Array<{
-    id: string;
-    description: string;
-    price: string;
-    network: string;
-    token: string;
-    tokenAddress: string;
-    payTo: string;
-  }>;
-  protocol: string;
-  facilitator: string;
+function createX402Fetch() {
+  const account = privateKeyToAccount(PRIVATE_KEY);
+  const publicClient = createPublicClient({ chain: celo, transport: http(RPC_URL) });
+
+  const signer = toClientEvmSigner(account, publicClient as any);
+  const client = new x402Client();
+  client.register("eip155:*", new ExactEvmScheme(signer as any));
+
+  return wrapFetchWithPayment(fetch, client);
 }
 
-async function getCapabilities(): Promise<X402Capabilities> {
-  const res = await fetch(`${X402_SERVER_URL}/x402/capabilities`);
-  return res.json() as Promise<X402Capabilities>;
-}
-
-async function callX402Endpoint(
-  capability: string,
-  task: string,
-  context = ""
-): Promise<any> {
-  // First call without payment to get 402 requirements
-  const res = await fetch(`${X402_SERVER_URL}/x402/agent/${capability}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ task, context }),
-  });
-
-  if (res.status === 402) {
-    const data = await res.json() as { price?: string; requirements?: any; error?: string };
-    console.log(`[x402] Got 402 requirements for ${capability}: $${data.price ?? "unknown"}`);
-    // In a real flow, the client would sign the EIP-3009 authorization here
-    // and send it in the X-PAYMENT header. For demo purposes, we log the requirements.
-    return { status: 402, requirements: data.requirements, price: data.price };
-  }
-
-  return res.json() as Promise<any>;
-}
-
-// ── High-Frequency Micro-Tasks ────────────────────────────────────────────────
+// ── Micro-Tasks ───────────────────────────────────────────────────────────────
 
 const MICRO_TASKS = [
   { capability: "analyze", task: "Analyze the sentiment of: DeFi protocols are seeing increased adoption on Celo" },
@@ -72,87 +47,109 @@ const MICRO_TASKS = [
   { capability: "translate", task: "Translate to Spanish: AI-Net enables autonomous agents to collaborate and settle payments on-chain" },
   { capability: "analyze", task: "Analyze the sentiment of: The x402 payment protocol is revolutionizing how AI agents settle micro-transactions" },
   { capability: "validate", task: "Validate this address format: 0x052f70C756B079F7eADB8b72C7Ea1579215090C8" },
-  { capability: "summarize", task: "Summarize: ERC-7710 spend permissions allow delegated spending rights with time-bounded allowances, enabling agent-to-agent payment delegation without transferring ownership" },
+  { capability: "summarize", task: "Summarize: ERC-7710 spend permissions allow delegated spending rights with time-bounded allowances" },
   { capability: "classify", task: "Classify: This proposal introduces a new governance mechanism for the AI-Net agent registry" },
 ];
 
-// ── Single Call Mode ──────────────────────────────────────────────────────────
+// ── Single Call ───────────────────────────────────────────────────────────────
 
 async function singleCall() {
-  console.log("[x402 Demo] Fetching capabilities...");
-  const caps = await getCapabilities();
-  console.log(`[x402 Demo] ${caps.capabilities.length} capabilities available`);
-
+  console.log("[x402] Setting up payment signer...");
+  const paidFetch = createX402Fetch();
   const task = MICRO_TASKS[0];
-  console.log(`[x402 Demo] Calling ${task.capability}: "${task.task.slice(0, 60)}..."`);
-  const result = await callX402Endpoint(task.capability, task.task);
-  console.log("[x402 Demo] Result:", JSON.stringify(result, null, 2));
+  console.log(`[x402] Calling ${task.capability}: "${task.task.slice(0, 60)}..."`);
+
+  const res = await paidFetch(`${X402_SERVER_URL}/x402/agent/${task.capability}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ task: task.task }),
+  });
+
+  const data = await res.json() as any;
+  console.log("[x402] Status:", res.status);
+  console.log("[x402] Payment:", data.payment ?? "none");
+  console.log("[x402] Output:", (data.output ?? "").slice(0, 200));
+  return data;
 }
 
 // ── Bulk Mode ─────────────────────────────────────────────────────────────────
 
 async function bulkCalls(count: number) {
-  console.log(`[x402 Demo] Making ${count} calls...`);
+  console.log(`[x402] Making ${count} paid calls...`);
+  const paidFetch = createX402Fetch();
 
-  let successCount = 0;
-  let failCount = 0;
+  let success = 0;
+  let failed = 0;
 
   for (let i = 0; i < count; i++) {
     const task = MICRO_TASKS[i % MICRO_TASKS.length];
     try {
       console.log(`[${i + 1}/${count}] ${task.capability}: "${task.task.slice(0, 50)}..."`);
-      const result = await callX402Endpoint(task.capability, task.task);
-      if (result.status === 402) {
-        console.log(`  → Got 402 requirements (needs payment signing)`);
+      const res = await paidFetch(`${X402_SERVER_URL}/x402/agent/${task.capability}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: task.task }),
+      });
+      const data = await res.json() as any;
+      if (data.payment?.settled) {
+        console.log(`  ✓ settled tx: ${data.payment.txHash}`);
+        success++;
       } else {
-        console.log(`  → OK`);
-        successCount++;
+        console.log(`  → status ${res.status}`);
+        if (res.status === 200) success++;
+        else failed++;
       }
     } catch (err) {
-      console.error(`  → Error: ${(err as Error).message}`);
-      failCount++;
+      console.error(`  ✗ ${(err as Error).message}`);
+      failed++;
     }
-
-    // Small delay between calls
-    if (i < count - 1) {
-      await new Promise((r) => setTimeout(r, 2000));
-    }
+    if (i < count - 1) await new Promise(r => setTimeout(r, 2000));
   }
 
-  console.log(`\n[x402 Demo] Done: ${successCount} success, ${failCount} failed`);
+  console.log(`\n[x402] Done: ${success} success, ${failed} failed`);
 }
 
 // ── Daemon Mode ───────────────────────────────────────────────────────────────
 
 async function daemon() {
-  console.log("[x402 Demo] Starting daemon mode...");
+  console.log("[x402] Starting daemon mode...");
+  const paidFetch = createX402Fetch();
   let index = 0;
 
   while (true) {
     const task = MICRO_TASKS[index % MICRO_TASKS.length];
     try {
       console.log(`[x402] ${task.capability}: "${task.task.slice(0, 60)}..."`);
-      await callX402Endpoint(task.capability, task.task);
+      const res = await paidFetch(`${X402_SERVER_URL}/x402/agent/${task.capability}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: task.task }),
+      });
+      const data = await res.json() as any;
+      if (data.payment?.settled) {
+        console.log(`  ✓ settled tx: ${data.payment.txHash}`);
+      } else {
+        console.log(`  → status ${res.status}`);
+      }
     } catch (err) {
       console.error(`[x402] Error: ${(err as Error).message}`);
     }
-
     index++;
-    // 30 second intervals for daemon
-    await new Promise((r) => setTimeout(r, 30_000));
+    await new Promise(r => setTimeout(r, 15_000));
   }
 }
 
-// ── CLI ───────────────────────────────────────────────────────────────────────
+// ── CLI Entry Point ───────────────────────────────────────────────────────────
 
-const args = process.argv.slice(2);
-
-if (args.includes("--daemon")) {
-  daemon().catch(console.error);
-} else if (args.includes("--bulk")) {
-  const idx = args.indexOf("--bulk");
-  const count = parseInt(args[idx + 1] ?? "10", 10);
-  bulkCalls(count).catch(console.error);
-} else {
-  singleCall().catch(console.error);
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  if (args.includes("--daemon")) {
+    daemon().catch(console.error);
+  } else if (args.includes("--bulk")) {
+    const idx = args.indexOf("--bulk");
+    const count = parseInt(args[idx + 1] ?? "10", 10);
+    bulkCalls(count).catch(console.error);
+  } else {
+    singleCall().catch(console.error);
+  }
 }
