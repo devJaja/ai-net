@@ -43,6 +43,7 @@ export default function SettingsPage() {
             { label: "AgentRegistry",    addr: CONTRACTS.AGENT_REGISTRY    },
             { label: "GuildPermissions", addr: CONTRACTS.GUILD_PERMISSIONS },
             { label: "TaskCoordinator",  addr: CONTRACTS.TASK_COORDINATOR  },
+            { label: "AgentJudge",       addr: CONTRACTS.AGENT_JUDGE       },
           ].map(({ label, addr }) => (
             <div key={label} className="flex items-center justify-between gap-3">
               <div>

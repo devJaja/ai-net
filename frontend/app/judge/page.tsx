@@ -14,7 +14,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+const API = "/api";
 
 interface Reputation {
   avgScore: number;
@@ -56,7 +56,7 @@ export default function JudgePage() {
   const [reputation, setReputation] = useState<Reputation | null>(null);
 
   useEffect(() => {
-    fetch(`${BACKEND}/judge/stats`)
+    fetch(`${API}/judge/stats`)
       .then((r) => r.json())
       .then(setStats)
       .catch(() => {});
@@ -68,7 +68,7 @@ export default function JudgePage() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch(`${BACKEND}/judge/evaluate`, {
+      const res = await fetch(`${API}/judge/evaluate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -98,7 +98,7 @@ export default function JudgePage() {
     setError(null);
     setResult(null);
     try {
-      const res = await fetch(`${BACKEND}/judge/feedback`, {
+      const res = await fetch(`${API}/judge/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -127,7 +127,7 @@ export default function JudgePage() {
     setError(null);
     setReputation(null);
     try {
-      const res = await fetch(`${BACKEND}/judge/reputation/${repAddr}`);
+      const res = await fetch(`${API}/judge/reputation/${repAddr}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Lookup failed");
       setReputation(data);
