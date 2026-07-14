@@ -257,6 +257,13 @@ app.post("/erc8004/check", limiter, async (req: Request, res: Response, next: Ne
 // Mount x402 routes under /x402 prefix for Track 2 (Most x402 Payments)
 app.use("/x402", x402App);
 
+// ── Task Runner Control ───────────────────────────────────────────────────────
+import { getRunnerStats } from "./taskRunner";
+
+app.get("/runner/stats", (_req: Request, res: Response) => {
+  res.json(getRunnerStats());
+});
+
 // ── Error handler ─────────────────────────────────────────────────────────────
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error("[Server error]", err.message);

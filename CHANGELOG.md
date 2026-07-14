@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.1.0] - 2026-07-14
+
+### Added
+- **Autonomous Task Runner**: Daemon that continuously creates tasks, hires agents, and generates tagged on-chain volume (Track 1). Configurable interval, budget, and jitter to avoid sybil patterns. Run via `npm run runner` or `scripts/start-runner.sh`
+- **x402 Demo Script**: Bulk and daemon modes for generating Track 2 volume by calling x402 pay-per-call endpoints. Run via `npm run x402-demo`
+- **Runner Stats Endpoint**: `GET /runner/stats` returns live task runner metrics (tasks run, tx count, uptime)
+- **Automation Scripts**: `scripts/start-runner.sh`, `scripts/start-x402-demo.sh`, `scripts/register-erc8004.sh`, `scripts/check-health.sh`
+
+### Fixed
+- **RegisterAgentIdentity.s.sol**: Removed invalid viem (JavaScript) imports that prevented Foundry compilation. Script now compiles as pure Solidity
+- **AINetIntegration.t.sol**: Fixed constructor mismatch — was passing 2 args in wrong order, now correctly passes 3 args: `(registry, permissions, coordinator)`
+- **Exposed secrets in .env**: Redacted private key and API keys from `backend/.env`. **ACTION REQUIRED: Rotate all exposed keys immediately** (COORDINATOR_PRIVATE_KEY, VENICE_API_KEY, ONESHOT_API_KEY)
+- **x402Demo.ts**: Fixed TypeScript strict mode type errors in JSON parsing
+
+### Changed
+- **Frontend dependencies**: Removed unused `@celo/rainbowkit-celo` and `@metamask/smart-accounts-kit` (never imported anywhere)
+- **Backend package.json**: Added `runner`, `runner:once`, `x402-demo`, `x402-demo:once` scripts. Added `ts-node` dev dependency
+- **.gitignore**: Changed `scripts/` exclusion to `scripts/*.sh.bak` so automation scripts are tracked
+
 ## [2.0.0] - 2026-07-13
 
 ### Added
