@@ -253,6 +253,63 @@ app.post("/erc8004/check", limiter, async (req: Request, res: Response, next: Ne
   } catch (err) { next(err); }
 });
 
+// ── AgentJudge: On-chain Evaluation & Feedback (Track 3 + 4) ────────────────
+import {
+  evaluateAgent,
+  submitAgentFeedback,
+  getAgentReputation,
+  getJudgeStats,
+  JUDGE_ADDRESS,
+} from "./judge";
+
+app.get("/judge/stats", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const stats = await getJudgeStats();
+    res.json({ judgeAddress: JUDGE_ADDRESS, ...stats });
+  } catch (err) { next(err); }
+});
+
+app.get("/judge/reputation/:agent", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agent = req.params.agent as `0x${string}`;
+    if (!agent.startsWith("0x") || agent.length !== 42) {
+      res.status(400).json({ error: "Invalid address" }); return;
+    }
+    const rep = await getAgentReputation(agent);
+    res.json({ agent, ...rep });
+  } catch (err) { next(err); }
+});
+
+app.post("/judge/evaluate", limiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { taskId, agent, score, verdict, rationale } = req.body as {
+      taskId: string; agent: string; score: number; verdict: string; rationale: string;
+    };
+    if (!taskId || !agent || !score || !verdict) {
+      res.status(400).json({ error: "taskId, agent, score, verdict required" }); return;
+    }
+    const result = await evaluateAgent(
+      BigInt(taskId), agent as `0x${string}`, score, verdict, rationale || "",
+    );
+    res.json({ success: true, evalId: result.evalId.toString(), txHash: result.txHash });
+  } catch (err) { next(err); }
+});
+
+app.post("/judge/feedback", limiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { taskId, agent, content, rating } = req.body as {
+      taskId: string; agent: string; content: string; rating: number;
+    };
+    if (!taskId || !agent || !content || !rating) {
+      res.status(400).json({ error: "taskId, agent, content, rating required" }); return;
+    }
+    const result = await submitAgentFeedback(
+      BigInt(taskId), agent as `0x${string}`, content, rating,
+    );
+    res.json({ success: true, feedbackId: result.feedbackId.toString(), txHash: result.txHash });
+  } catch (err) { next(err); }
+});
+
 // ── x402 Pay-Per-Call Routes ─────────────────────────────────────────────────
 // Mount x402 routes under /x402 prefix for Track 2 (Most x402 Payments)
 app.use("/x402", x402App);
