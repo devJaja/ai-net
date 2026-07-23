@@ -11,7 +11,16 @@
     "runner:once": "ts-node src/taskRunner.ts",
     "x402-demo": "ts-node src/x402Demo.ts --daemon",
     "x402-demo:once": "ts-node src/x402Demo.ts",
-    "register-agents": "ts-node src/registerAgents.ts"
+    "register-agents": "ts-node src/registerAgents.ts",
+    "askbots": "ts-node src/askbots.ts --daemon",
+    "askbots:once": "ts-node src/askbots.ts",
+    "askbots:register": "ts-node src/askbots.ts --register",
+    "askbots:profile": "ts-node src/askbots.ts --profile",
+    "aigora": "ts-node src/aigora.ts --daemon",
+    "aigora:once": "ts-node src/aigora.ts",
+    "aigora:register": "ts-node src/aigora.ts --register",
+    "aigora:discover": "ts-node src/aigora.ts --discover",
+    "erc8004": "ts-node src/registerAgents.ts"
   },
   "dependencies": {
     "@celo/attribution-tags": "^0.3.0",

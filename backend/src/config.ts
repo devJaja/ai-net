@@ -26,6 +26,12 @@ export const config = {
   x402FacilitatorUrl:   process.env.X402_FACILITATOR_URL ?? "https://x402.celo.org",
   // USDC address on Celo mainnet (EIP-3009 compatible)
   usdcAddress:          (process.env.USDC_ADDRESS ?? "0xcebA9300f2b948710d2653dD7B07f33A8B32118C") as `0x${string}`,
+  // Track 3: Askbots
+  askbotsApiKey:        process.env.ASKBOTS_API_KEY ?? "",
+  askbotsAgentId:       process.env.ASKBOTS_AGENT_ID ?? "",
+  // Track 4: Aigora
+  aigoraProfileUrl:     process.env.AIGORA_PROFILE_URL ?? "",
+  aigoraFeedbackIssues: (process.env.AIGORA_FEEDBACK_ISSUES ?? "").split(",").filter(Boolean),
 } as const;
 
 // ── Minimal ABIs (only functions the backend calls) ───────────────────────────

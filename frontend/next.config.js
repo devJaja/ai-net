@@ -6,7 +6,7 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/:path*",
+        source: "/api/:path((?!backend).*)",
         destination: `${process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:3000"}/:path*`,
       },
     ];

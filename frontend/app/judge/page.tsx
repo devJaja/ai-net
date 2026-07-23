@@ -14,7 +14,9 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-const API = "/api";
+import { BACKEND_URL } from "@/lib/constants";
+
+const API = BACKEND_URL;
 
 interface Reputation {
   avgScore: number;

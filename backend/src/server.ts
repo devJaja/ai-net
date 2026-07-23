@@ -253,7 +253,27 @@ app.post("/erc8004/check", limiter, async (req: Request, res: Response, next: Ne
   } catch (err) { next(err); }
 });
 
-// ── AgentJudge: On-chain Evaluation & Feedback (Track 3 + 4) ────────────────
+// ── Track 3: Askbots ──────────────────────────────────────────────────────────
+import {
+  registerBot as registerAskbotsBot,
+  checkBotStatus,
+  createBotProfile,
+  getBotProfile,
+  runFeedbackCycle as runAskbotsCycle,
+  startAskbotsDaemon,
+  getAskbotsStats,
+} from "./askbots";
+
+// ── Track 4: Aigora ──────────────────────────────────────────────────────────
+import {
+  registerAgent as registerAigoraAgent,
+  discoverAgents,
+  runFeedbackCycle as runAigoraCycle,
+  startAigoraDaemon,
+  getAigoraStats,
+} from "./aigora";
+
+// ── AgentJudge: On-chain Evaluation & Feedback ───────────────────────────────
 import {
   evaluateAgent,
   submitAgentFeedback,
@@ -313,6 +333,92 @@ app.post("/judge/feedback", limiter, async (req: Request, res: Response, next: N
 // ── x402 Pay-Per-Call Routes ─────────────────────────────────────────────────
 // Mount x402 routes under /x402 prefix for Track 2 (Most x402 Payments)
 app.use("/x402", x402App);
+
+// ── Track 3: Askbots Routes ──────────────────────────────────────────────────
+
+app.get("/askbots/status", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const status = await checkBotStatus();
+    const stats = getAskbotsStats();
+    res.json({ bot: status, stats });
+  } catch (err) { next(err); }
+});
+
+app.post("/askbots/register", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await registerAskbotsBot();
+    res.json({
+      success: true,
+      agentId: result.agentId,
+      message: "Save the API key — it is only shown once. Add ASKBOTS_API_KEY and ASKBOTS_AGENT_ID to .env.",
+    });
+  } catch (err) { next(err); }
+});
+
+app.post("/askbots/profile", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profile = await createBotProfile();
+    res.json({ success: true, profile });
+  } catch (err) { next(err); }
+});
+
+app.get("/askbots/profile", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profile = await getBotProfile();
+    res.json(profile);
+  } catch (err) { next(err); }
+});
+
+app.post("/askbots/run", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const results = await runAskbotsCycle();
+    res.json({
+      success: true,
+      cycleResults: results,
+      totalPayouts: results.filter((r) => r.payout).length,
+    });
+  } catch (err) { next(err); }
+});
+
+// ── Track 4: Aigora Routes ──────────────────────────────────────────────────
+
+app.get("/aigora/status", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const stats = getAigoraStats();
+    res.json(stats);
+  } catch (err) { next(err); }
+});
+
+app.post("/aigora/register", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await registerAigoraAgent();
+    res.json({
+      success: true,
+      profileId: result.profileId,
+      profileUrl: result.profileUrl,
+      txHash: result.txHash,
+    });
+  } catch (err) { next(err); }
+});
+
+app.get("/aigora/discover", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agents = await discoverAgents();
+    res.json({ agents, count: agents.length });
+  } catch (err) { next(err); }
+});
+
+app.post("/aigora/feedback", limiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { maxAgents = 2 } = req.body as { maxAgents?: number };
+    const results = await runAigoraCycle(maxAgents);
+    res.json({
+      success: true,
+      cycleResults: results,
+      totalSubmitted: results.filter((r) => r.feedbackGenerated).length,
+    });
+  } catch (err) { next(err); }
+});
 
 // ── Task Runner Control ───────────────────────────────────────────────────────
 import { getRunnerStats } from "./taskRunner";

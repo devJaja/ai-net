@@ -1,12 +1,12 @@
 /**
  * x402 Pay-Per-Call Agent Endpoints
- * 
+ *
  * Exposes AI-Net agent capabilities as USDC micropayment endpoints.
- * Each call settles a real x402 payment through the Celo facilitator,
+ * Each call settles a real x402 v2 payment through the Celo facilitator,
  * counting toward Track 2 (Most x402 Payments).
- * 
- * The attribution tag is appended to every settlement transaction
- * so it also counts toward Track 1 (Most Revenue Generated).
+ *
+ * Uses HTTP-based facilitator client (raw fetch to https://x402.celo.org)
+ * to avoid moduleResolution issues with @x402/core subpath exports.
  */
 import express, { type Request, type Response } from "express";
 import cors from "cors";
@@ -14,159 +14,200 @@ import { config } from "./config";
 import { account } from "./chain";
 import { veniceChat } from "./agents/venice";
 
-// ── Constants ──────────────────────────────────────────────────────────────────
+// ── x402 v2 Types (inline to avoid moduleResolution issues) ────────────────────
 
-// EIP-712 domain for Celo USDC
-const USDC_DOMAIN = {
-  name: "USD Coin",
-  version: "2",
-  chainId: 42220,
-  verifyingContract: config.usdcAddress,
-};
+interface X402PaymentRequirements {
+  scheme: string;
+  network: string;
+  asset: string;
+  amount: string;
+  payTo: string;
+  maxTimeoutSeconds: number;
+  extra: Record<string, unknown>;
+}
+
+interface X402PaymentPayload {
+  x402Version: number;
+  resource?: { url: string; description?: string; mimeType?: string };
+  accepted: X402PaymentRequirements;
+  payload: Record<string, unknown>;
+  extensions?: Record<string, unknown>;
+}
+
+interface X402PaymentRequired {
+  x402Version: number;
+  error?: string;
+  resource: { url: string; description?: string; mimeType?: string };
+  accepts: X402PaymentRequirements[];
+  extensions?: Record<string, unknown>;
+}
+
+interface X402VerifyRequest {
+  x402Version: number;
+  paymentPayload: X402PaymentPayload;
+  paymentRequirements: X402PaymentRequirements;
+}
+
+interface X402VerifyResponse {
+  isValid: boolean;
+  invalidReason?: string;
+  invalidMessage?: string;
+  payer?: string;
+}
+
+interface X402SettleRequest {
+  x402Version: number;
+  paymentPayload: X402PaymentPayload;
+  paymentRequirements: X402PaymentRequirements;
+}
+
+interface X402SettleResponse {
+  success: boolean;
+  errorReason?: string;
+  errorMessage?: string;
+  payer?: string;
+  transaction: string;
+  network: string;
+}
+
+// ── Facilitator HTTP Client ────────────────────────────────────────────────────
+
+const FACILITATOR_URL = config.x402FacilitatorUrl;
+
+async function facilitatorVerify(
+  payload: X402PaymentPayload,
+  requirements: X402PaymentRequirements,
+): Promise<X402VerifyResponse> {
+  const body: X402VerifyRequest = {
+    x402Version: 2,
+    paymentPayload: payload,
+    paymentRequirements: requirements,
+  };
+  const res = await fetch(`${FACILITATOR_URL}/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.json() as Promise<X402VerifyResponse>;
+}
+
+async function facilitatorSettle(
+  payload: X402PaymentPayload,
+  requirements: X402PaymentRequirements,
+): Promise<X402SettleResponse> {
+  const body: X402SettleRequest = {
+    x402Version: 2,
+    paymentPayload: payload,
+    paymentRequirements: requirements,
+  };
+  const res = await fetch(`${FACILITATOR_URL}/settle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.json() as Promise<X402SettleResponse>;
+}
 
 // ── Agent Capabilities (priced per-call) ───────────────────────────────────────
-const AGENT_CAPABILITIES = [
-  {
-    id: "research",
-    description: "Market research and competitive analysis",
-    priceUSD: "0.01",
-    priceUnits: 10000, // 6 decimals = 0.01 USDC
-  },
-  {
-    id: "risk",
-    description: "Risk assessment and mitigation strategies",
-    priceUSD: "0.01",
-    priceUnits: 10000,
-  },
-  {
-    id: "coding",
-    description: "Code generation and technical implementation",
-    priceUSD: "0.02",
-    priceUnits: 20000,
-  },
-  {
-    id: "design",
-    description: "UI/UX design specifications and wireframes",
-    priceUSD: "0.01",
-    priceUnits: 10000,
-  },
-  {
-    id: "audit",
-    description: "Quality assurance and code review",
-    priceUSD: "0.01",
-    priceUnits: 10000,
-  },
-  {
-    id: "report",
-    description: "Deliverable compilation and reporting",
-    priceUSD: "0.005",
-    priceUnits: 5000,
-  },
-  // ── High-frequency micro-services (Track 2 stackers) ──────────────────────
-  {
-    id: "analyze",
-    description: "Quick text analysis and sentiment detection",
-    priceUSD: "0.001",
-    priceUnits: 1000, // $0.001 per call — very cheap, high frequency
-  },
-  {
-    id: "validate",
-    description: "Data validation and format checking",
-    priceUSD: "0.001",
-    priceUnits: 1000,
-  },
-  {
-    id: "format",
-    description: "Code and text formatting",
-    priceUSD: "0.001",
-    priceUnits: 1000,
-  },
-  {
-    id: "summarize",
-    description: "Quick text summarization",
-    priceUSD: "0.001",
-    priceUnits: 1000,
-  },
-  {
-    id: "translate",
-    description: "Language translation and localization",
-    priceUSD: "0.002",
-    priceUnits: 2000,
-  },
-  {
-    id: "classify",
-    description: "Content classification and categorization",
-    priceUSD: "0.001",
-    priceUnits: 1000,
-  },
+
+interface Capability {
+  id: string;
+  description: string;
+  priceUSD: string;
+  priceUnits: number;
+}
+
+const AGENT_CAPABILITIES: Capability[] = [
+  { id: "research",  description: "Market research and competitive analysis",  priceUSD: "0.01",  priceUnits: 10000 },
+  { id: "risk",      description: "Risk assessment and mitigation strategies", priceUSD: "0.01",  priceUnits: 10000 },
+  { id: "coding",    description: "Code generation and technical implementation", priceUSD: "0.02", priceUnits: 20000 },
+  { id: "design",    description: "UI/UX design specifications and wireframes", priceUSD: "0.01", priceUnits: 10000 },
+  { id: "audit",     description: "Quality assurance and code review",         priceUSD: "0.01",  priceUnits: 10000 },
+  { id: "report",    description: "Deliverable compilation and reporting",     priceUSD: "0.005", priceUnits: 5000 },
+  { id: "analyze",   description: "Quick text analysis and sentiment detection", priceUSD: "0.001", priceUnits: 1000 },
+  { id: "validate",  description: "Data validation and format checking",       priceUSD: "0.001", priceUnits: 1000 },
+  { id: "format",    description: "Code and text formatting",                  priceUSD: "0.001", priceUnits: 1000 },
+  { id: "summarize", description: "Quick text summarization",                  priceUSD: "0.001", priceUnits: 1000 },
+  { id: "translate", description: "Language translation and localization",     priceUSD: "0.002", priceUnits: 2000 },
+  { id: "classify",  description: "Content classification and categorization", priceUSD: "0.001", priceUnits: 1000 },
 ];
-
-// ── Facilitator Client ─────────────────────────────────────────────────────────
-
-interface FacilitatorResponse {
-  valid: boolean;
-  payer?: string;
-  error?: string;
-}
-
-interface SettlementResponse {
-  success: boolean;
-  txHash?: string;
-  error?: string;
-}
-
-async function verifyPayment(
-  paymentPayload: any,
-  paymentRequirements: any
-): Promise<FacilitatorResponse> {
-  try {
-    const res = await fetch(`${config.x402FacilitatorUrl}/verify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentPayload, paymentRequirements }),
-    });
-    return await res.json() as FacilitatorResponse;
-  } catch (err) {
-    return { valid: false, error: `Facilitator error: ${(err as Error).message}` };
-  }
-}
-
-async function settlePayment(
-  paymentPayload: any,
-  paymentRequirements: any
-): Promise<SettlementResponse> {
-  try {
-    const res = await fetch(`${config.x402FacilitatorUrl}/settle`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentPayload, paymentRequirements }),
-    });
-    return await res.json() as SettlementResponse;
-  } catch (err) {
-    return { success: false, error: `Settlement error: ${(err as Error).message}` };
-  }
-}
 
 // ── Agent Inference ────────────────────────────────────────────────────────────
 
 async function callAgent(capability: string, task: string, context: string): Promise<string> {
   const SYSTEM_MAP: Record<string, string> = {
-    research: "You are a market research specialist. Produce concise, factual research: key players, market size, growth trends.",
-    risk:     "You are a risk analysis specialist. Identify key risks and rate each High/Medium/Low. Be concise.",
-    coding:   "You are a senior software engineer. Output ONLY complete, runnable code. No explanations.",
-    design:   "You are a UI/UX design specialist. Produce detailed design specifications.",
-    audit:    "You are a quality auditor. Review outputs for accuracy. Give a verdict (PASS/FAIL/NEEDS_REVISION).",
-    report:   "You are a deliverable compiler. Match output format to what was requested — code for code tasks, report for analysis tasks.",
-    // High-frequency micro-services
-    analyze:   "You are a text analyst. Analyze the text for sentiment (positive/negative/neutral), key topics, and brief summary. Return JSON: { sentiment, topics[], summary }.",
-    validate:  "You are a data validator. Check the input for valid format, structure, and required fields. Return JSON: { valid: bool, errors[], warnings[] }.",
+    research:  "You are a market research specialist. Produce concise, factual research: key players, market size, growth trends.",
+    risk:      "You are a risk analysis specialist. Identify key risks and rate each High/Medium/Low. Be concise.",
+    coding:    "You are a senior software engineer. Output ONLY complete, runnable code. No explanations.",
+    design:    "You are a UI/UX design specialist. Produce detailed design specifications.",
+    audit:     "You are a quality auditor. Review outputs for accuracy. Give a verdict (PASS/FAIL/NEEDS_REVISION).",
+    report:    "You are a deliverable compiler. Match output format to what was requested.",
+    analyze:   "You are a text analyst. Return JSON: { sentiment, topics[], summary }.",
+    validate:  "You are a data validator. Return JSON: { valid: bool, errors[], warnings[] }.",
     format:    "You are a code formatter. Return the input properly formatted and indented. No explanations.",
     summarize: "You are a summarizer. Return a 1-2 sentence summary of the input text.",
-    translate: "You are a translator. Translate the input text to the target language specified in the context. Return only the translation.",
-    classify:  "You are a classifier. Classify the input text into categories. Return JSON: { category: string, confidence: number, tags[] }.",
+    translate: "You are a translator. Translate the input text to the target language specified in context.",
+    classify:  "You are a classifier. Return JSON: { category: string, confidence: number, tags[] }.",
   };
   const prompt = context ? `Task: ${task}\n\nContext:\n${context}` : task;
   return veniceChat(SYSTEM_MAP[capability] ?? SYSTEM_MAP.report, prompt, "mistral-small-3-2-24b-instruct");
+}
+
+// ── x402 Helpers ───────────────────────────────────────────────────────────────
+
+function buildRequirements(cap: Capability): X402PaymentRequirements {
+  return {
+    scheme: "exact",
+    network: "eip155:42220",
+    asset: config.usdcAddress,
+    amount: cap.priceUnits.toString(),
+    payTo: account.address,
+    maxTimeoutSeconds: 300,
+    extra: {},
+  };
+}
+
+function buildBatchRequirements(totalUnits: number, itemCount: number): X402PaymentRequirements {
+  return {
+    scheme: "exact",
+    network: "eip155:42220",
+    asset: config.usdcAddress,
+    amount: totalUnits.toString(),
+    payTo: account.address,
+    maxTimeoutSeconds: 300,
+    extra: {},
+  };
+}
+
+async function verifyAndSettle(
+  paymentPayload: X402PaymentPayload,
+  requirements: X402PaymentRequirements,
+): Promise<{ success: boolean; txHash?: string; payer?: string; error?: string }> {
+  const verifyResult = await facilitatorVerify(paymentPayload, requirements);
+  if (!verifyResult.isValid) {
+    return { success: false, error: verifyResult.invalidReason ?? verifyResult.invalidMessage ?? "Verification failed" };
+  }
+
+  const settleResult = await facilitatorSettle(paymentPayload, requirements);
+  if (!settleResult.success) {
+    return { success: false, error: settleResult.errorReason ?? settleResult.errorMessage ?? "Settlement failed" };
+  }
+
+  return {
+    success: true,
+    txHash: settleResult.transaction,
+    payer: settleResult.payer,
+  };
+}
+
+function parsePaymentHeader(raw: string | undefined): X402PaymentPayload | null {
+  if (!raw) return null;
+  try {
+    const decoded = Buffer.from(raw, "base64").toString();
+    return JSON.parse(decoded) as X402PaymentPayload;
+  } catch {
+    return null;
+  }
 }
 
 // ── Express Server ─────────────────────────────────────────────────────────────
@@ -177,7 +218,6 @@ app.use(express.json());
 
 /**
  * GET /x402/capabilities
- * List available agent services and their prices
  */
 app.get("/capabilities", (_req: Request, res: Response) => {
   res.json({
@@ -191,14 +231,13 @@ app.get("/capabilities", (_req: Request, res: Response) => {
       payTo: account.address,
     })),
     protocol: "x402",
-    facilitator: config.x402FacilitatorUrl,
+    facilitator: FACILITATOR_URL,
   });
 });
 
 /**
  * POST /x402/agent/:capability
- * Pay-per-call agent endpoint. If no payment header, returns 402 with requirements.
- * If payment is valid, settles and returns the agent's response.
+ * Pay-per-call agent endpoint.
  */
 app.post("/agent/:capability", async (req: Request, res: Response) => {
   const { capability } = req.params;
@@ -215,76 +254,31 @@ app.post("/agent/:capability", async (req: Request, res: Response) => {
     return;
   }
 
-  // Check for payment header
-  const rawHeader = req.headers["x-payment"] || req.headers["payment-signature"];
-  const paymentData = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+  const rawHeader = req.headers["x-payment"] as string | undefined;
+  const paymentPayload = parsePaymentHeader(rawHeader);
 
-  if (!paymentData) {
-    // Return 402 Payment Required with requirements
-    const requirements = {
-      accepts: [
-        {
-          scheme: "exact",
-          network: "eip155:42220",
-          amount: capConfig.priceUnits.toString(),
-          asset: config.usdcAddress,
-          payTo: account.address,
-          maxTimeoutSeconds: 300,
-        },
-      ],
-      description: `AI-Net ${capConfig.id} agent: ${capConfig.description}`,
-      mimeType: "application/json",
-    };
-
-    res.status(402).set({
-      "Content-Type": "application/json",
-      "Accepts": JSON.stringify(requirements),
-    }).json({
+  if (!paymentPayload) {
+    const requirements = buildRequirements(capConfig);
+    const paymentRequired: X402PaymentRequired = {
+      x402Version: 2,
       error: "Payment required",
-      requirements,
-      price: `$${capConfig.priceUSD} USDC`,
-      endpoint: `/x402/agent/${capability}`,
-      instructions: "Sign a transferWithAuthorization for the amount above and send it in the X-PAYMENT header",
-    });
+      resource: { url: `/x402/agent/${capability}`, description: `AI-Net ${capConfig.description}`, mimeType: "application/json" },
+      accepts: [requirements],
+    };
+    res.status(402).json(paymentRequired);
     return;
   }
 
-  // Parse payment payload
-  let paymentPayload: any;
+  const requirements = buildRequirements(capConfig);
+  const result = await verifyAndSettle(paymentPayload, requirements);
+
+  if (!result.success) {
+    res.status(402).json({ error: "Payment failed", details: result.error });
+    return;
+  }
+
   try {
-    const decoded = Buffer.from(paymentData, "base64").toString();
-    paymentPayload = JSON.parse(decoded);
-  } catch {
-    res.status(400).json({ error: "Invalid payment payload encoding" });
-    return;
-  }
-
-  const paymentRequirements = {
-    scheme: "exact",
-    network: "eip155:42220",
-    amount: capConfig.priceUnits.toString(),
-    asset: config.usdcAddress,
-    payTo: account.address,
-    maxTimeoutSeconds: 300,
-  };
-
-  // Verify payment
-  const verification = await verifyPayment(paymentPayload, paymentRequirements);
-  if (!verification.valid) {
-    res.status(402).json({ error: "Payment verification failed", details: verification.error });
-    return;
-  }
-
-  // Settle payment on-chain
-  const settlement = await settlePayment(paymentPayload, paymentRequirements);
-  if (!settlement.success) {
-    res.status(402).json({ error: "Payment settlement failed", details: settlement.error });
-    return;
-  }
-
-  // Run the agent
-  try {
-    console.log(`[x402] Serving ${capability} request (tx: ${settlement.txHash})`);
+    console.log(`[x402] ${capability} served (tx: ${result.txHash}, payer: ${result.payer})`);
     const output = await callAgent(capability, task, context);
 
     res.json({
@@ -292,12 +286,12 @@ app.post("/agent/:capability", async (req: Request, res: Response) => {
       output,
       payment: {
         settled: true,
-        txHash: settlement.txHash,
+        txHash: result.txHash,
+        payer: result.payer,
         amount: capConfig.priceUSD,
         token: "USDC",
         network: "Celo Mainnet (42220)",
       },
-      attribution: config.attributionTag,
     });
   } catch (err) {
     res.status(500).json({ error: "Agent execution failed", details: (err as Error).message });
@@ -305,30 +299,15 @@ app.post("/agent/:capability", async (req: Request, res: Response) => {
 });
 
 /**
- * GET /x402/health
- * Health check for the x402 server
- */
-app.get("/health", (_req: Request, res: Response) => {
-  res.json({
-    status: "ok",
-    protocol: "x402",
-    network: "Celo Mainnet (42220)",
-    facilitator: config.x402FacilitatorUrl,
-    capabilities: AGENT_CAPABILITIES.length,
-    attributionTag: config.attributionTag,
-  });
-});
-
-/**
  * POST /x402/batch
- * Batch multiple x402 payments in one request.
- * Each item in the batch is a separate payment (counts separately on leaderboard).
+ * Batch multiple agent calls under a single x402 payment.
+ * Client signs one payment for the total amount of all items.
  */
 app.post("/batch", async (req: Request, res: Response) => {
   const { items } = req.body as { items?: Array<{ capability: string; task: string; context?: string }> };
 
   if (!items?.length) {
-    res.status(400).json({ error: "items array is required with at least 1 item" });
+    res.status(400).json({ error: "items array required (1-10 items)" });
     return;
   }
 
@@ -337,28 +316,85 @@ app.post("/batch", async (req: Request, res: Response) => {
     return;
   }
 
-  // Process all items in parallel
+  // Validate all capabilities and compute total
+  let totalUnits = 0;
+  for (const item of items) {
+    const cap = AGENT_CAPABILITIES.find(c => c.id === item.capability);
+    if (!cap) {
+      res.status(400).json({ error: `Unknown capability: ${item.capability}` });
+      return;
+    }
+    if (!item.task?.trim()) {
+      res.status(400).json({ error: `task required for capability: ${item.capability}` });
+      return;
+    }
+    totalUnits += cap.priceUnits;
+  }
+
+  const rawHeader = req.headers["x-payment"] as string | undefined;
+  const paymentPayload = parsePaymentHeader(rawHeader);
+
+  if (!paymentPayload) {
+    const requirements = buildBatchRequirements(totalUnits, items.length);
+    const paymentRequired: X402PaymentRequired = {
+      x402Version: 2,
+      error: "Payment required",
+      resource: { url: "/x402/batch", description: `AI-Net batch: ${items.length} agent calls`, mimeType: "application/json" },
+      accepts: [requirements],
+    };
+    res.status(402).json(paymentRequired);
+    return;
+  }
+
+  // Verify and settle the single batch payment
+  const requirements = buildBatchRequirements(totalUnits, items.length);
+  const result = await verifyAndSettle(paymentPayload, requirements);
+
+  if (!result.success) {
+    res.status(402).json({ error: "Batch payment failed", details: result.error });
+    return;
+  }
+
+  // Execute all agent calls in parallel (payment already settled)
+  console.log(`[x402] batch of ${items.length} settled (tx: ${result.txHash})`);
+
   const results = await Promise.allSettled(
     items.map(async (item) => {
-      const capConfig = AGENT_CAPABILITIES.find(c => c.id === item.capability);
-      if (!capConfig) throw new Error(`Unknown capability: ${item.capability}`);
-      
+      const cap = AGENT_CAPABILITIES.find(c => c.id === item.capability)!;
       const output = await callAgent(item.capability, item.task, item.context ?? "");
-      return {
-        capability: item.capability,
-        output,
-        price: capConfig.priceUSD,
-      };
+      return { capability: item.capability, output, price: cap.priceUSD };
     })
   );
 
   res.json({
-    results: results.map((r, i) => ({
-      status: r.status,
-      ...(r.status === "fulfilled" ? r.value : { error: (r.reason as Error).message }),
-    })),
-    totalItems: items.length,
-    attribution: config.attributionTag,
+    results: results.map(r =>
+      r.status === "fulfilled"
+        ? { status: "ok", ...r.value }
+        : { status: "error", error: (r.reason as Error).message }
+    ),
+    payment: {
+      settled: true,
+      txHash: result.txHash,
+      payer: result.payer,
+      totalUSDC: (totalUnits / 1_000_000).toFixed(6),
+      token: "USDC",
+      network: "Celo Mainnet (42220)",
+    },
+  });
+});
+
+/**
+ * GET /x402/health
+ */
+app.get("/health", (_req: Request, res: Response) => {
+  res.json({
+    status: "ok",
+    protocol: "x402",
+    version: 2,
+    network: "Celo Mainnet (42220)",
+    capabilities: AGENT_CAPABILITIES.length,
+    payTo: account.address,
+    attributionTag: config.attributionTag,
   });
 });
 

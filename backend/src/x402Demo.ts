@@ -14,6 +14,7 @@ import "dotenv/config";
 import { privateKeyToAccount } from "viem/accounts";
 import { createPublicClient, http } from "viem";
 import { celo } from "viem/chains";
+// @ts-ignore - @x402/fetch types only available with node16 moduleResolution
 import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
 import { ExactEvmScheme, toClientEvmSigner } from "@x402/evm";
 
