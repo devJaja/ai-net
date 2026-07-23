@@ -10,6 +10,7 @@
     }
   ],
   "routes": [
+    { "handle": "filesystem" },
     {
       "src": "/api/backend(/.*)?",
       "dest": "/api/backend/[[...path]]"
