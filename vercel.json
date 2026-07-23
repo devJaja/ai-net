@@ -9,13 +9,6 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
-    { "handle": "filesystem" },
-    {
-      "src": "/api/backend(/.*)?",
-      "dest": "/api/backend/[[...path]]"
-    }
-  ],
   "installCommand": "npm install --legacy-peer-deps && npm install --prefix ../backend --legacy-peer-deps",
   "headers": [
     {
