@@ -1,8 +1,20 @@
 {
-  "builds": [
+  "installCommand": "npm install --legacy-peer-deps && npm install --prefix ../backend --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "headers": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/next"
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" },
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
+      "source": "/mini",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
     }
   ]
 }
