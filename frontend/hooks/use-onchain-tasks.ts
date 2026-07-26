@@ -145,3 +145,6 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 
 // Feature: feat(hooks): add refetch capability for on-chain task data
 // Implementation detail for task history enhancement
+
+// Feature: feat(hooks): create computeAgentStats utility function
+// Implementation detail for task history enhancement
