@@ -122,3 +122,13 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 }
 
 // Commit 13: feat(hooks): filter tasks by connected wallet address
+
+// Helper: resolve block timestamp for event log
+async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
+  try {
+    const block = await client.getBlock({ blockNumber });
+    return Number(block.timestamp) * 1000;
+  } catch { return 0; }
+}
+
+// Commit 14: feat(hooks): compute global stats (total tasks, TVL, unique agents)
