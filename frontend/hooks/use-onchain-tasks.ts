@@ -52,3 +52,13 @@ const AGENT_HIRED_TOPIC = "0x taskId indexed, address indexed agent, uint256 amo
 
 // TaskCompleted event signature
 const TASK_COMPLETED_TOPIC = "0x taskId indexed, address indexed requester, uint256 refund";
+
+// Helper: resolve block timestamp for event log
+async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
+  try {
+    const block = await client.getBlock({ blockNumber });
+    return Number(block.timestamp) * 1000;
+  } catch { return 0; }
+}
+
+// Commit 7: feat(hooks): add block timestamp resolution for task events
