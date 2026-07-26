@@ -166,3 +166,6 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 
 // Feature: feat(dashboard): display unique active agents from on-chain events
 // Implementation detail for task history enhancement
+
+// Feature: feat(dashboard): show user-specific tasks filtered by wallet
+// Implementation detail for task history enhancement
