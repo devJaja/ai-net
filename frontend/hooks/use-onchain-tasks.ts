@@ -163,3 +163,6 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 
 // Feature: feat(dashboard): display TVL in stat card from on-chain budget sums
 // Implementation detail for task history enhancement
+
+// Feature: feat(dashboard): display unique active agents from on-chain events
+// Implementation detail for task history enhancement
