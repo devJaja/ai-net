@@ -76,3 +76,12 @@
 - 50+ new CSS utility classes for consistent design system
 - Improved dashboard stat cards with colored borders
 - SEO: Added OpenGraph, Twitter cards, meta keywords
+
+## [1.2.0] - 2026-07-26
+
+### Added
+- On-chain task history scanning via TaskCoordinator event logs
+- Real-time task stats from blockchain (total tasks, TVL, active agents)
+- AgentHired event tracking for per-agent payment history
+- TaskCompleted event tracking with refund amounts
+- Block timestamp resolution for event chronological ordering
