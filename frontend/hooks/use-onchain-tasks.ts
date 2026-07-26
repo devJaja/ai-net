@@ -148,3 +148,6 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 
 // Feature: feat(hooks): create computeAgentStats utility function
 // Implementation detail for task history enhancement
+
+// Feature: feat(hooks): compute per-agent hire count and total earned
+// Implementation detail for task history enhancement
