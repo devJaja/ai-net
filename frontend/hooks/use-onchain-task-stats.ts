@@ -51,3 +51,5 @@ export function useOnChainStats() {
 // Enhancement: feat(payments): show AgentHired as per-agent payment
 
 // Enhancement: feat(payments): show TaskCompleted with refund as incoming
+
+// Enhancement: feat(payments): compute total spent from on-chain AgentHired amounts
