@@ -169,3 +169,6 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 
 // Feature: feat(dashboard): show user-specific tasks filtered by wallet
 // Implementation detail for task history enhancement
+
+// Feature: feat(dashboard): add loading skeletons for on-chain stats
+// Implementation detail for task history enhancement
