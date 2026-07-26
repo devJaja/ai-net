@@ -25,3 +25,5 @@ export function useOnChainStats() {
   }, []);
   return stats;
 }
+
+// Enhancement: feat(dashboard): handle error state when chain is unreachable
