@@ -1,55 +1,116 @@
 "use client";
-import { useState, useEffect } from "react";
-import { createPublicClient, http } from "viem";
-import { CONTRACTS, CHAIN_ID } from "@/lib/constants";
 
-export function useOnChainStats() {
-  const [stats, setStats] = useState({ totalTasks: 0, tvl: "0", agentsActive: 0 });
-  useEffect(() => {
-    // Fetch on-chain stats from TaskCoordinator taskCount
-    async function load() {
-      try {
-        const client = createPublicClient({
-          chain: { id: CHAIN_ID, name: "Celo", nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 }, rpcUrls: { default: { http: ["https://forno.celo.org"] } } },
-          transport: http(),
-        });
-        const tc = await client.readContract({
-          address: CONTRACTS.TASK_COORDINATOR,
-          abi: [{ name: "taskCount", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] }],
-          functionName: "taskCount",
-        });
-        setStats({ totalTasks: Number(tc), tvl: "0", agentsActive: 0 });
-      } catch {}
-    }
-    load();
-  }, []);
-  return stats;
+import { useState, useEffect, useCallback } from "react";
+import { createPublicClient, http, formatEther, type PublicClient } from "viem";
+import { CONTRACTS, CHAIN_ID } from "@/lib/constants";
+import { OnChainStats } from "./use-onchain-tasks";
+
+const celoChain = {
+  id: CHAIN_ID,
+  name: "Celo Mainnet",
+  nativeCurrency: { name: "Celo", symbol: "CELO", decimals: 18 },
+  rpcUrls: { default: { http: ["https://forno.celo.org"] } },
+} as const;
+
+const TASK_COORDINATOR_ABI = [
+  {
+    name: "taskCount",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
+
+const AGENT_HIRED_ABI = {
+  name: "AgentHired",
+  type: "event" as const,
+  inputs: [
+    { name: "taskId", indexed: true, type: "uint256" },
+    { name: "agent", indexed: true, type: "address" },
+    { name: "amount", type: "uint256" },
+  ],
+};
+
+const TASK_CREATED_ABI = {
+  name: "TaskCreated",
+  type: "event" as const,
+  inputs: [
+    { name: "taskId", indexed: true, type: "uint256" },
+    { name: "requester", indexed: true, type: "address" },
+    { name: "budget", type: "uint256" },
+    { name: "permId", type: "uint256" },
+  ],
+};
+
+function makeClient(): PublicClient {
+  return createPublicClient({
+    chain: celoChain,
+    transport: http("https://forno.celo.org", { timeout: 30_000 }),
+  });
 }
 
-// Enhancement: feat(dashboard): handle error state when chain is unreachable
+export function useOnChainStats(): OnChainStats & { loading: boolean; error: string } {
+  const [stats, setStats] = useState<OnChainStats>({ totalTasks: 0, tvl: "0", agentsActive: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-// Enhancement: feat(tasks): replace localStorage history with on-chain task list
+  const fetchStats = useCallback(async () => {
+    if (!CONTRACTS.TASK_COORDINATOR || !CONTRACTS.AGENT_REGISTRY) {
+      setLoading(false);
+      return;
+    }
 
-// Enhancement: feat(tasks): display task IDs from on-chain TaskCreated events
+    try {
+      const client = makeClient();
 
-// Enhancement: feat(tasks): show agent count per task from AgentHired events
+      const taskCount = await client.readContract({
+        address: CONTRACTS.TASK_COORDINATOR,
+        abi: TASK_COORDINATOR_ABI,
+        functionName: "taskCount",
+      });
 
-// Enhancement: feat(tasks): show completion status with green badge
+      const createdLogs = await client.getLogs({
+        address: CONTRACTS.TASK_COORDINATOR,
+        event: TASK_CREATED_ABI,
+        fromBlock: 0n,
+        toBlock: "latest",
+      });
 
-// Enhancement: feat(tasks): show refund amounts for completed tasks
+      let totalBudget = 0n;
+      for (const log of createdLogs) {
+        totalBudget += log.args.budget ?? 0n;
+      }
 
-// Enhancement: feat(tasks): link to Celoscan using on-chain tx hashes
+      const hiredLogs = await client.getLogs({
+        address: CONTRACTS.TASK_COORDINATOR,
+        event: AGENT_HIRED_ABI,
+        fromBlock: 0n,
+        toBlock: "latest",
+      });
 
-// Enhancement: feat(tasks): add task detail expandable view with full event log
+      const uniqueAgents = new Set<string>();
+      for (const log of hiredLogs) {
+        const agent = log.args.agent;
+        if (agent) uniqueAgents.add(agent.toLowerCase());
+      }
 
-// Enhancement: feat(tasks): add pagination for large on-chain task lists
+      setStats({
+        totalTasks: Number(taskCount),
+        tvl: formatEther(totalBudget),
+        agentsActive: uniqueAgents.size,
+      });
+      setError("");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to fetch stats");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-// Enhancement: feat(payments): replace localStorage tx rows with on-chain events
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
-// Enhancement: feat(payments): show TaskCreated as outgoing payment
-
-// Enhancement: feat(payments): show AgentHired as per-agent payment
-
-// Enhancement: feat(payments): show TaskCompleted with refund as incoming
-
-// Enhancement: feat(payments): compute total spent from on-chain AgentHired amounts
+  return { ...stats, loading, error };
+}

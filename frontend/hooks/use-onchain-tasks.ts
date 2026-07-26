@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createPublicClient, http, formatEther } from "viem";
+import { createPublicClient, http, formatEther, type PublicClient } from "viem";
 import { CONTRACTS, CHAIN_ID } from "@/lib/constants";
 
 const celoChain = {
@@ -11,164 +11,178 @@ const celoChain = {
   rpcUrls: { default: { http: ["https://forno.celo.org"] } },
 } as const;
 
+const TASK_CREATED_ABI = {
+  name: "TaskCreated",
+  type: "event" as const,
+  inputs: [
+    { name: "taskId", indexed: true, type: "uint256" },
+    { name: "requester", indexed: true, type: "address" },
+    { name: "budget", type: "uint256" },
+    { name: "permId", type: "uint256" },
+  ],
+};
+
+const AGENT_HIRED_ABI = {
+  name: "AgentHired",
+  type: "event" as const,
+  inputs: [
+    { name: "taskId", indexed: true, type: "uint256" },
+    { name: "agent", indexed: true, type: "address" },
+    { name: "amount", type: "uint256" },
+  ],
+};
+
+const TASK_COMPLETED_ABI = {
+  name: "TaskCompleted",
+  type: "event" as const,
+  inputs: [
+    { name: "taskId", indexed: true, type: "uint256" },
+    { name: "requester", indexed: true, type: "address" },
+    { name: "refund", type: "uint256" },
+  ],
+};
+
 export interface OnChainTask {
   taskId: string;
   requester: string;
   budget: string;
+  budgetWei: bigint;
+  description: string;
   agentsHired: string[];
+  agentCount: number;
   completed: boolean;
+  refund: string;
   txHashes: string[];
   timestamp: number;
+  blockNumber: number;
+}
+
+export interface OnChainStats {
+  totalTasks: number;
+  tvl: string;
+  agentsActive: number;
+}
+
+function makeClient(): PublicClient {
+  return createPublicClient({
+    chain: celoChain,
+    transport: http("https://forno.celo.org", { timeout: 30_000 }),
+  });
+}
+
+async function resolveTimestamp(client: PublicClient, blockNumber: bigint): Promise<number> {
+  try {
+    const block = await client.getBlock({ blockNumber });
+    return Number(block.timestamp) * 1000;
+  } catch {
+    return 0;
+  }
 }
 
 export function useOnChainTasks(walletAddress?: string) {
   const [tasks, setTasks] = useState<OnChainTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const fetchTasks = useCallback(async () => {
-    if (!CONTRACTS.TASK_COORDINATOR) { setLoading(false); return; }
+    if (!CONTRACTS.TASK_COORDINATOR) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const client = createPublicClient({ chain: celoChain, transport: http() });
-      const logs = await client.getLogs({
-        address: CONTRACTS.TASK_COORDINATOR,
-        fromBlock: 0n,
-        toBlock: "latest",
-      });
-      console.log("Fetched", logs.length, "event logs");
-      setTasks([]);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      const client = makeClient();
+
+      const [createdLogs, hiredLogs, completedLogs] = await Promise.all([
+        client.getLogs({
+          address: CONTRACTS.TASK_COORDINATOR,
+          event: TASK_CREATED_ABI,
+          fromBlock: 0n,
+          toBlock: "latest",
+        }),
+        client.getLogs({
+          address: CONTRACTS.TASK_COORDINATOR,
+          event: AGENT_HIRED_ABI,
+          fromBlock: 0n,
+          toBlock: "latest",
+        }),
+        client.getLogs({
+          address: CONTRACTS.TASK_COORDINATOR,
+          event: TASK_COMPLETED_ABI,
+          fromBlock: 0n,
+          toBlock: "latest",
+        }),
+      ]);
+
+      const completedSet = new Set<string>();
+      const refundMap = new Map<string, string>();
+
+      for (const log of completedLogs) {
+        const taskId = log.args.taskId?.toString() ?? "";
+        completedSet.add(taskId);
+        const refund = log.args.refund;
+        if (refund !== undefined) {
+          refundMap.set(taskId, formatEther(refund));
+        }
+      }
+
+      const taskMap = new Map<string, OnChainTask>();
+
+      for (const log of createdLogs) {
+        const taskId = log.args.taskId?.toString() ?? "";
+        const requester = log.args.requester ?? "0x";
+        const budget = log.args.budget ?? 0n;
+        const timestamp = await resolveTimestamp(client, log.blockNumber);
+
+        taskMap.set(taskId, {
+          taskId,
+          requester,
+          budget: formatEther(budget),
+          budgetWei: budget,
+          description: "",
+          agentsHired: [],
+          agentCount: 0,
+          completed: completedSet.has(taskId),
+          refund: refundMap.get(taskId) ?? "0",
+          txHashes: [log.transactionHash],
+          timestamp,
+          blockNumber: Number(log.blockNumber),
+        });
+      }
+
+      for (const log of hiredLogs) {
+        const taskId = log.args.taskId?.toString() ?? "";
+        const agent = log.args.agent ?? "0x";
+        const task = taskMap.get(taskId);
+        if (task) {
+          task.agentsHired.push(agent);
+          task.agentCount = task.agentsHired.length;
+          if (!task.txHashes.includes(log.transactionHash)) {
+            task.txHashes.push(log.transactionHash);
+          }
+        }
+      }
+
+      const allTasks = Array.from(taskMap.values()).sort(
+        (a, b) => Number(b.taskId) - Number(a.taskId)
+      );
+
+      const filtered = walletAddress
+        ? allTasks.filter((t) => t.requester.toLowerCase() === walletAddress.toLowerCase())
+        : allTasks;
+
+      setTasks(filtered);
+      setError("");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to fetch on-chain tasks");
+    } finally {
+      setLoading(false);
+    }
   }, [walletAddress]);
 
-  useEffect(() => { fetchTasks(); }, [fetchTasks]);
-  return { tasks, loading, refetch: fetchTasks };
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  return { tasks, loading, error, refetch: fetchTasks };
 }
-
-// TaskCreated event signature
-const TASK_CREATED_TOPIC = "0x taskId indexed, address indexed requester, uint256 budget, uint256 permId";
-
-// AgentHired event signature
-const AGENT_HIRED_TOPIC = "0x taskId indexed, address indexed agent, uint256 amount";
-
-// TaskCompleted event signature
-const TASK_COMPLETED_TOPIC = "0x taskId indexed, address indexed requester, uint256 refund";
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 7: feat(hooks): add block timestamp resolution for task events
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 8: feat(hooks): build task map from created event logs
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 9: feat(hooks): attach hired agents to task map entries
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 10: feat(hooks): add completion status from completed events
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 11: feat(hooks): add refund amount extraction from completed events
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 12: feat(hooks): sort tasks by taskId descending
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 13: feat(hooks): filter tasks by connected wallet address
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 14: feat(hooks): compute global stats (total tasks, TVL, unique agents)
-
-// Helper: resolve block timestamp for event log
-async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
-  try {
-    const block = await client.getBlock({ blockNumber });
-    return Number(block.timestamp) * 1000;
-  } catch { return 0; }
-}
-
-// Commit 15: feat(hooks): add loading and error states to on-chain tasks hook
-
-// Feature: feat(hooks): add refetch capability for on-chain task data
-// Implementation detail for task history enhancement
-
-// Feature: feat(hooks): create computeAgentStats utility function
-// Implementation detail for task history enhancement
-
-// Feature: feat(hooks): compute per-agent hire count and total earned
-// Implementation detail for task history enhancement
-
-// Feature: feat(hooks): return agent stats as Map keyed by lowercase address
-// Implementation detail for task history enhancement
-
-// Feature: feat(dashboard): replace localStorage history with on-chain task data
-// Implementation detail for task history enhancement
-
-// Feature: feat(dashboard): display total on-chain tasks in stat card
-// Implementation detail for task history enhancement
-
-// Feature: feat(dashboard): display TVL in stat card from on-chain budget sums
-// Implementation detail for task history enhancement
-
-// Feature: feat(dashboard): display unique active agents from on-chain events
-// Implementation detail for task history enhancement
-
-// Feature: feat(dashboard): show user-specific tasks filtered by wallet
-// Implementation detail for task history enhancement
-
-// Feature: feat(dashboard): add loading skeletons for on-chain stats
-// Implementation detail for task history enhancement
