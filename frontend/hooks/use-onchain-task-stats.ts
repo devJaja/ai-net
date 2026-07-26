@@ -47,3 +47,5 @@ export function useOnChainStats() {
 // Enhancement: feat(payments): replace localStorage tx rows with on-chain events
 
 // Enhancement: feat(payments): show TaskCreated as outgoing payment
+
+// Enhancement: feat(payments): show AgentHired as per-agent payment
