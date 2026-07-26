@@ -46,3 +46,6 @@ export function useOnChainTasks(walletAddress?: string) {
 
 // TaskCreated event signature
 const TASK_CREATED_TOPIC = "0x taskId indexed, address indexed requester, uint256 budget, uint256 permId";
+
+// AgentHired event signature
+const AGENT_HIRED_TOPIC = "0x taskId indexed, address indexed agent, uint256 amount";
