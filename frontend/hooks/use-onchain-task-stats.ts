@@ -41,3 +41,5 @@ export function useOnChainStats() {
 // Enhancement: feat(tasks): link to Celoscan using on-chain tx hashes
 
 // Enhancement: feat(tasks): add task detail expandable view with full event log
+
+// Enhancement: feat(tasks): add pagination for large on-chain task lists
