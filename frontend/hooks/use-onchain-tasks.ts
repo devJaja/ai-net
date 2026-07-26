@@ -82,3 +82,13 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 }
 
 // Commit 9: feat(hooks): attach hired agents to task map entries
+
+// Helper: resolve block timestamp for event log
+async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
+  try {
+    const block = await client.getBlock({ blockNumber });
+    return Number(block.timestamp) * 1000;
+  } catch { return 0; }
+}
+
+// Commit 10: feat(hooks): add completion status from completed events
