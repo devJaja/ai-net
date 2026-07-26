@@ -31,3 +31,5 @@ export function useOnChainStats() {
 // Enhancement: feat(tasks): replace localStorage history with on-chain task list
 
 // Enhancement: feat(tasks): display task IDs from on-chain TaskCreated events
+
+// Enhancement: feat(tasks): show agent count per task from AgentHired events
