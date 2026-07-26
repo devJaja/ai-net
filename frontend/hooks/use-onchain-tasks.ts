@@ -49,3 +49,6 @@ const TASK_CREATED_TOPIC = "0x taskId indexed, address indexed requester, uint25
 
 // AgentHired event signature
 const AGENT_HIRED_TOPIC = "0x taskId indexed, address indexed agent, uint256 amount";
+
+// TaskCompleted event signature
+const TASK_COMPLETED_TOPIC = "0x taskId indexed, address indexed requester, uint256 refund";
