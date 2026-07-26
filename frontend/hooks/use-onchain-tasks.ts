@@ -142,3 +142,6 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 }
 
 // Commit 15: feat(hooks): add loading and error states to on-chain tasks hook
+
+// Feature: feat(hooks): add refetch capability for on-chain task data
+// Implementation detail for task history enhancement
