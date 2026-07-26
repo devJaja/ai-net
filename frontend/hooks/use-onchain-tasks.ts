@@ -43,3 +43,6 @@ export function useOnChainTasks(walletAddress?: string) {
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
   return { tasks, loading, refetch: fetchTasks };
 }
+
+// TaskCreated event signature
+const TASK_CREATED_TOPIC = "0x taskId indexed, address indexed requester, uint256 budget, uint256 permId";
