@@ -21,3 +21,14 @@ export const AGENT_HIRED_EVENT_ABI = {
     { name: "amount", type: "uint256" },
   ],
 } as const;
+
+// TaskCompleted event ABI
+export const TASK_COMPLETED_EVENT_ABI = {
+  name: "TaskCompleted",
+  type: "event",
+  inputs: [
+    { name: "taskId", indexed: true, type: "uint256" },
+    { name: "requester", indexed: true, type: "address" },
+    { name: "refund", type: "uint256" },
+  ],
+} as const;
