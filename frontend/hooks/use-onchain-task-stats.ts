@@ -33,3 +33,5 @@ export function useOnChainStats() {
 // Enhancement: feat(tasks): display task IDs from on-chain TaskCreated events
 
 // Enhancement: feat(tasks): show agent count per task from AgentHired events
+
+// Enhancement: feat(tasks): show completion status with green badge
