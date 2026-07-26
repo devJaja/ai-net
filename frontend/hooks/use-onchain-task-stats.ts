@@ -29,3 +29,5 @@ export function useOnChainStats() {
 // Enhancement: feat(dashboard): handle error state when chain is unreachable
 
 // Enhancement: feat(tasks): replace localStorage history with on-chain task list
+
+// Enhancement: feat(tasks): display task IDs from on-chain TaskCreated events
