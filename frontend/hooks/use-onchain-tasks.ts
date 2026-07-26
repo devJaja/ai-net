@@ -160,3 +160,6 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 
 // Feature: feat(dashboard): display total on-chain tasks in stat card
 // Implementation detail for task history enhancement
+
+// Feature: feat(dashboard): display TVL in stat card from on-chain budget sums
+// Implementation detail for task history enhancement
