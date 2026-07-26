@@ -10,3 +10,14 @@ export const TASK_CREATED_EVENT_ABI = {
     { name: "permId", type: "uint256" },
   ],
 } as const;
+
+// AgentHired event ABI
+export const AGENT_HIRED_EVENT_ABI = {
+  name: "AgentHired",
+  type: "event",
+  inputs: [
+    { name: "taskId", indexed: true, type: "uint256" },
+    { name: "agent", indexed: true, type: "address" },
+    { name: "amount", type: "uint256" },
+  ],
+} as const;
