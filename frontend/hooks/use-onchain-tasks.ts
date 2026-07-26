@@ -1,0 +1,45 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { createPublicClient, http, formatEther } from "viem";
+import { CONTRACTS, CHAIN_ID } from "@/lib/constants";
+
+const celoChain = {
+  id: CHAIN_ID,
+  name: "Celo Mainnet",
+  nativeCurrency: { name: "Celo", symbol: "CELO", decimals: 18 },
+  rpcUrls: { default: { http: ["https://forno.celo.org"] } },
+} as const;
+
+export interface OnChainTask {
+  taskId: string;
+  requester: string;
+  budget: string;
+  agentsHired: string[];
+  completed: boolean;
+  txHashes: string[];
+  timestamp: number;
+}
+
+export function useOnChainTasks(walletAddress?: string) {
+  const [tasks, setTasks] = useState<OnChainTask[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTasks = useCallback(async () => {
+    if (!CONTRACTS.TASK_COORDINATOR) { setLoading(false); return; }
+    try {
+      const client = createPublicClient({ chain: celoChain, transport: http() });
+      const logs = await client.getLogs({
+        address: CONTRACTS.TASK_COORDINATOR,
+        fromBlock: 0n,
+        toBlock: "latest",
+      });
+      console.log("Fetched", logs.length, "event logs");
+      setTasks([]);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, [walletAddress]);
+
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+  return { tasks, loading, refetch: fetchTasks };
+}
