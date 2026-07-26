@@ -43,3 +43,5 @@ export function useOnChainStats() {
 // Enhancement: feat(tasks): add task detail expandable view with full event log
 
 // Enhancement: feat(tasks): add pagination for large on-chain task lists
+
+// Enhancement: feat(payments): replace localStorage tx rows with on-chain events
