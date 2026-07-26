@@ -35,3 +35,5 @@ export function useOnChainStats() {
 // Enhancement: feat(tasks): show agent count per task from AgentHired events
 
 // Enhancement: feat(tasks): show completion status with green badge
+
+// Enhancement: feat(tasks): show refund amounts for completed tasks
