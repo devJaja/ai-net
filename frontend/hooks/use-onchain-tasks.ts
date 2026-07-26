@@ -154,3 +154,6 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 
 // Feature: feat(hooks): return agent stats as Map keyed by lowercase address
 // Implementation detail for task history enhancement
+
+// Feature: feat(dashboard): replace localStorage history with on-chain task data
+// Implementation detail for task history enhancement
