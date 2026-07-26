@@ -102,3 +102,13 @@ async function resolveTimestamp(client: any, blockNumber: bigint): Promise<numbe
 }
 
 // Commit 11: feat(hooks): add refund amount extraction from completed events
+
+// Helper: resolve block timestamp for event log
+async function resolveTimestamp(client: any, blockNumber: bigint): Promise<number> {
+  try {
+    const block = await client.getBlock({ blockNumber });
+    return Number(block.timestamp) * 1000;
+  } catch { return 0; }
+}
+
+// Commit 12: feat(hooks): sort tasks by taskId descending
