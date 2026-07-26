@@ -1,5 +1,5 @@
-import { parseEther, type Address } from "viem";
-import { publicClient, walletClient, account, chain } from "./chain";
+import { parseEther, encodeFunctionData, type Address } from "viem";
+import { publicClient, walletClient, account, chain, appendAttributionTag } from "./chain";
 import { config, agentRegistryAbi, taskCoordinatorAbi } from "./config";
 import { runResearch } from "./agents/research";
 import { runRiskAnalysis } from "./agents/risk";
@@ -7,7 +7,7 @@ import { runReport } from "./agents/report";
 import { runCoding } from "./agents/coding";
 import { runDesign } from "./agents/design";
 import { runAudit } from "./agents/audit";
-import { veniceChat } from "./agents/venice.js";
+import { veniceChat } from "./agents/venice";
 
 const VENICE_HOST = "api.venice.ai";
 
@@ -91,15 +91,19 @@ async function findAgents(capability: string): Promise<Address[]> {
 }
 
 async function createTask(description: string, budgetEth: string, durationSecs: bigint): Promise<bigint> {
-  const hash = await walletClient.writeContract({
-    chain,
-    account,
-    address: config.contracts.taskCoordinator,
+  // Encode the function call, then append attribution tag as suffix
+  const calldata = encodeFunctionData({
     abi: taskCoordinatorAbi,
     functionName: "createTask",
     args: [description, durationSecs],
-    value: parseEther(budgetEth),
   });
+  const hash = await walletClient.sendTransaction({
+    chain,
+    account,
+    to: config.contracts.taskCoordinator,
+    value: parseEther(budgetEth),
+    data: appendAttributionTag(calldata),
+  } as any);
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   // TaskCreated(uint256 indexed taskId, ...) — taskId is topics[1]
   const log = receipt.logs.find(l => l.topics.length >= 2);
@@ -108,25 +112,31 @@ async function createTask(description: string, budgetEth: string, durationSecs: 
 }
 
 async function hireAgent(taskId: bigint, agent: Address): Promise<`0x${string}`> {
-  const hash = await walletClient.writeContract({ chain,
-    account,
-    address: config.contracts.taskCoordinator,
+  const calldata = encodeFunctionData({
     abi: taskCoordinatorAbi,
     functionName: "hireAgent",
     args: [taskId, agent],
   });
+  const hash = await walletClient.sendTransaction({ chain,
+    account,
+    to: config.contracts.taskCoordinator,
+    data: appendAttributionTag(calldata),
+  } as any);
   await publicClient.waitForTransactionReceipt({ hash });
   return hash;
 }
 
 async function completeTask(taskId: bigint): Promise<`0x${string}`> {
-  const hash = await walletClient.writeContract({ chain,
-    account,
-    address: config.contracts.taskCoordinator,
+  const calldata = encodeFunctionData({
     abi: taskCoordinatorAbi,
     functionName: "completeTask",
     args: [taskId],
   });
+  const hash = await walletClient.sendTransaction({ chain,
+    account,
+    to: config.contracts.taskCoordinator,
+    data: appendAttributionTag(calldata),
+  } as any);
   await publicClient.waitForTransactionReceipt({ hash });
   return hash;
 }

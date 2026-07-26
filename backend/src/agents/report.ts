@@ -1,4 +1,4 @@
-import { veniceChat } from "./venice.js";
+import { veniceChat } from "./venice";
 
 const SYSTEM = `You are a senior deliverable compiler. Given a task and agent outputs, produce the FINAL deliverable.
 

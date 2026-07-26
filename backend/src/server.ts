@@ -7,6 +7,12 @@ import { runCoordinator } from "./coordinator";
 import { runAgent, type Capability } from "./agentRunner";
 import { buildProject } from "./builder";
 
+// ── x402 Pay-Per-Call Server ──────────────────────────────────────────────────
+import x402App from "./x402-server";
+
+// ── ERC-8004 Agent Identity ───────────────────────────────────────────────────
+import { registerAgentIdentity, getAgentIdentity } from "./erc8004";
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -16,7 +22,12 @@ const limiter = rateLimit({ windowMs: 60_000, max: 10, standardHeaders: true, le
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 app.get("/health", (_req: Request, res: Response) => {
-  res.json({ status: "ok", chain: config.chainId });
+  res.json({
+    status: "ok",
+    chain: config.chainId,
+    attributionTag: config.attributionTag || "not configured",
+    x402Facilitator: config.x402FacilitatorUrl,
+  });
 });
 
 /**
@@ -199,6 +210,223 @@ app.post("/build", limiter, async (req: Request, res: Response, next: NextFuncti
   } catch (err) { next(err); }
 });
 
+/**
+ * POST /erc8004/register
+ * Register the AI-Net coordinator as an ERC-8004 agent on Celo Mainnet
+ */
+app.post("/erc8004/register", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await registerAgentIdentity();
+    res.json({
+      success: true,
+      agentId: result.agentId.toString(),
+      txHash: result.txHash,
+      scanUrl: `https://8004scan.io/agents/celo/${result.agentId}`,
+      celoscanUrl: `https://celoscan.io/nft/0x8004a169fb4a3325136eb29fa0ceb6d2e539a432/${result.agentId}`,
+    });
+  } catch (err) { next(err); }
+});
+
+/**
+ * POST /erc8004/check
+ * Check if an ERC-8004 agent identity exists
+ */
+app.post("/erc8004/check", limiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId } = req.body as { agentId: string };
+    if (!agentId) {
+      res.status(400).json({ error: "agentId is required" });
+      return;
+    }
+    const identity = await getAgentIdentity(BigInt(agentId));
+    if (!identity) {
+      res.json({ exists: false });
+      return;
+    }
+    res.json({
+      exists: true,
+      agentId,
+      uri: identity.uri,
+      wallet: identity.wallet,
+      scanUrl: `https://8004scan.io/agents/celo/${agentId}`,
+    });
+  } catch (err) { next(err); }
+});
+
+// ── Track 3: Askbots ──────────────────────────────────────────────────────────
+import {
+  registerBot as registerAskbotsBot,
+  checkBotStatus,
+  createBotProfile,
+  getBotProfile,
+  runFeedbackCycle as runAskbotsCycle,
+  startAskbotsDaemon,
+  getAskbotsStats,
+} from "./askbots";
+
+// ── Track 4: Aigora ──────────────────────────────────────────────────────────
+import {
+  registerAgent as registerAigoraAgent,
+  discoverAgents,
+  runFeedbackCycle as runAigoraCycle,
+  startAigoraDaemon,
+  getAigoraStats,
+} from "./aigora";
+
+// ── AgentJudge: On-chain Evaluation & Feedback ───────────────────────────────
+import {
+  evaluateAgent,
+  submitAgentFeedback,
+  getAgentReputation,
+  getJudgeStats,
+  JUDGE_ADDRESS,
+} from "./judge";
+
+app.get("/judge/stats", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const stats = await getJudgeStats();
+    res.json({ judgeAddress: JUDGE_ADDRESS, ...stats });
+  } catch (err) { next(err); }
+});
+
+app.get("/judge/reputation/:agent", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agent = req.params.agent as `0x${string}`;
+    if (!agent.startsWith("0x") || agent.length !== 42) {
+      res.status(400).json({ error: "Invalid address" }); return;
+    }
+    const rep = await getAgentReputation(agent);
+    res.json({ agent, ...rep });
+  } catch (err) { next(err); }
+});
+
+app.post("/judge/evaluate", limiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { taskId, agent, score, verdict, rationale } = req.body as {
+      taskId: string; agent: string; score: number; verdict: string; rationale: string;
+    };
+    if (!taskId || !agent || !score || !verdict) {
+      res.status(400).json({ error: "taskId, agent, score, verdict required" }); return;
+    }
+    const result = await evaluateAgent(
+      BigInt(taskId), agent as `0x${string}`, score, verdict, rationale || "",
+    );
+    res.json({ success: true, evalId: result.evalId.toString(), txHash: result.txHash });
+  } catch (err) { next(err); }
+});
+
+app.post("/judge/feedback", limiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { taskId, agent, content, rating } = req.body as {
+      taskId: string; agent: string; content: string; rating: number;
+    };
+    if (!taskId || !agent || !content || !rating) {
+      res.status(400).json({ error: "taskId, agent, content, rating required" }); return;
+    }
+    const result = await submitAgentFeedback(
+      BigInt(taskId), agent as `0x${string}`, content, rating,
+    );
+    res.json({ success: true, feedbackId: result.feedbackId.toString(), txHash: result.txHash });
+  } catch (err) { next(err); }
+});
+
+// ── x402 Pay-Per-Call Routes ─────────────────────────────────────────────────
+// Mount x402 routes under /x402 prefix for Track 2 (Most x402 Payments)
+app.use("/x402", x402App);
+
+// ── Track 3: Askbots Routes ──────────────────────────────────────────────────
+
+app.get("/askbots/status", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const status = await checkBotStatus();
+    const stats = getAskbotsStats();
+    res.json({ bot: status, stats });
+  } catch (err) { next(err); }
+});
+
+app.post("/askbots/register", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await registerAskbotsBot();
+    res.json({
+      success: true,
+      agentId: result.agentId,
+      message: "Save the API key — it is only shown once. Add ASKBOTS_API_KEY and ASKBOTS_AGENT_ID to .env.",
+    });
+  } catch (err) { next(err); }
+});
+
+app.post("/askbots/profile", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profile = await createBotProfile();
+    res.json({ success: true, profile });
+  } catch (err) { next(err); }
+});
+
+app.get("/askbots/profile", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profile = await getBotProfile();
+    res.json(profile);
+  } catch (err) { next(err); }
+});
+
+app.post("/askbots/run", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const results = await runAskbotsCycle();
+    res.json({
+      success: true,
+      cycleResults: results,
+      totalPayouts: results.filter((r) => r.payout).length,
+    });
+  } catch (err) { next(err); }
+});
+
+// ── Track 4: Aigora Routes ──────────────────────────────────────────────────
+
+app.get("/aigora/status", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const stats = getAigoraStats();
+    res.json(stats);
+  } catch (err) { next(err); }
+});
+
+app.post("/aigora/register", limiter, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await registerAigoraAgent();
+    res.json({
+      success: true,
+      profileId: result.profileId,
+      profileUrl: result.profileUrl,
+      txHash: result.txHash,
+    });
+  } catch (err) { next(err); }
+});
+
+app.get("/aigora/discover", async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agents = await discoverAgents();
+    res.json({ agents, count: agents.length });
+  } catch (err) { next(err); }
+});
+
+app.post("/aigora/feedback", limiter, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { maxAgents = 2 } = req.body as { maxAgents?: number };
+    const results = await runAigoraCycle(maxAgents);
+    res.json({
+      success: true,
+      cycleResults: results,
+      totalSubmitted: results.filter((r) => r.feedbackGenerated).length,
+    });
+  } catch (err) { next(err); }
+});
+
+// ── Task Runner Control ───────────────────────────────────────────────────────
+import { getRunnerStats } from "./taskRunner";
+
+app.get("/runner/stats", (_req: Request, res: Response) => {
+  res.json(getRunnerStats());
+});
+
 // ── Error handler ─────────────────────────────────────────────────────────────
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error("[Server error]", err.message);
@@ -212,5 +440,7 @@ if (!process.env.VERCEL) {
     console.log(`[AI-Net] Backend running on port ${config.port}`);
     console.log(`[AI-Net] Chain ID: ${config.chainId}`);
     console.log(`[AI-Net] TaskCoordinator: ${config.contracts.taskCoordinator}`);
+    console.log(`[AI-Net] Attribution Tag: ${config.attributionTag || "NOT SET"}`);
+    console.log(`[AI-Net] x402 Facilitator: ${config.x402FacilitatorUrl}`);
   });
 }

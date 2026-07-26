@@ -8,8 +8,13 @@ backend/dist/
 backend/node_modules/
 frontend/node_modules/
 frontend/.next/
-scripts/
+scripts/*.sh.bak
 
 # temp
 *.sh.bak
 /tmp
+
+# opencode / claude skills (local tool config)
+.agents/
+.claude/
+skills-lock.json

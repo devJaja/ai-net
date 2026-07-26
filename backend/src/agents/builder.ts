@@ -1,4 +1,4 @@
-import { veniceChat } from "./venice.js";
+import { veniceChat } from "./venice";
 
 export interface ProjectFile { path: string; content: string; }
 export interface BuildPlan {

@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 import { mkdirSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
-import { runArchitect, runCoder, runDesigner, runReviewer, type ProjectFile, type BuildPlan } from "./agents/builder.js";
+import { runArchitect, runCoder, runDesigner, runReviewer, type ProjectFile, type BuildPlan } from "./agents/builder";
 
 export interface BuildResult {
   prompt: string;

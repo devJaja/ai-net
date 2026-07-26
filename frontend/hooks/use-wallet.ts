@@ -71,7 +71,7 @@ export function useWallet(): WalletState {
     if (typeof window === "undefined") return;
     const eth = (window as any).ethereum;
     if (!eth) {
-      setConnectError("No wallet detected. Open inside MiniPay or install MetaMask.");
+      setConnectError("No wallet detected. Install MetaMask or open in MiniPay.");
       return;
     }
     setConnecting(true);
@@ -80,7 +80,7 @@ export function useWallet(): WalletState {
       const accounts: string[] = await eth.request({ method: "eth_requestAccounts" });
       if (accounts[0]) {
         setAddress(accounts[0] as `0x${string}`);
-        await switchToCelo();
+        try { await switchToCelo(); } catch { /* non-fatal */ }
         setWalletClient(createWalletClient({ chain: celo, transport: custom(eth) }));
       }
     } catch (e) {

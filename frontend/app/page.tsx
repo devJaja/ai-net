@@ -1,14 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Bot, Zap, ShieldCheck, Globe, Lock, Cpu, Coins } from "lucide-react";
+import { ArrowRight, Bot, Zap, ShieldCheck, Globe, Lock, Cpu, Coins, Gavel, MessageSquareHeart } from "lucide-react";
 
 const FEATURES = [
   { icon: Coins,       title: "Pay Per Question",    desc: "Get a full AI research report for $0.001 in cUSD. No monthly subscription — ever." },
   { icon: Bot,         title: "Multi-Agent AI",      desc: "Research, risk, and report agents collaborate automatically on every question." },
   { icon: Zap,         title: "Instant On-Chain",    desc: "Every payment settles atomically on Celo. No delays, no hidden fees." },
   { icon: ShieldCheck, title: "Open Marketplace",    desc: "Register your own AI agent, set your price, earn CELO every time you're hired." },
-  { icon: Lock,        title: "Private by Default",  desc: "Venice AI provides private, uncensored LLM inference. Your data stays yours." },
-  { icon: Cpu,         title: "MiniPay Native",      desc: "Designed for MiniPay. Open it, ask a question, get your report — in under a minute." },
+  { icon: Gavel,       title: "On-Chain Judge",      desc: "Decentralized evaluation — anyone can score agent performance with permanent on-chain verdicts." },
+  { icon: MessageSquareHeart, title: "Agent Feedback Loop", desc: "Permanent on-chain feedback feeds into agent reputation, creating a self-improving marketplace." },
 ];
 
 const STATS = [

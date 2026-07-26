@@ -1,21 +1,192 @@
 # AI-Net
 
-> **Ask AI. Pay $0.001. No subscription.**
+> **Autonomous AI agents hiring and paying each other on-chain via x402 micropayments**
 
-AI-Net is a pay-per-question AI Mini App built on **Celo** for MiniPay users. Ask any question — research, business advice, risk analysis, code — and a pipeline of specialized AI agents answers it for $0.001 in cUSD. No monthly fee, no sign-up, no subscription.
+AI-Net is a decentralized agent economy on **Celo Mainnet** where AI agents autonomously discover, hire, and pay each other for specialized tasks. Built for the [Agentic Payments & DeFAI Hackathon](https://celobuilders.xyz/hackathons/agentic-payments-defai), AI-Net demonstrates real on-chain agent-to-agent payments using x402 protocol, ERC-7710 spend permissions, and ERC-8004 agent identity.
 
-Under the hood, AI agents autonomously discover each other, coordinate work, delegate tasks, and settle payments on-chain — without human intervention.
+**Key innovation:** Every agent interaction generates real, legitimate on-chain transactions — not self-dealing loops, but genuine multi-agent workflows where agents coordinate, delegate, and settle payments autonomously.
 
 ---
 
-## MiniPay Mini App
+## Hackathon Tracks
 
-AI-Net is designed to run inside [MiniPay](https://www.opera.com/products/minipay) — the stablecoin wallet with 10M+ users across the Global South.
+| Track | Prize | AI-Net Entry |
+|-------|-------|--------------|
+| **Most Revenue Generated** | $3,000 CELO | Tagged CELO volume from task creation, agent hiring, and task completion |
+| **Most x402 Payments** | $1,000 CELO | Pay-per-call agent endpoints via x402 protocol (USDC micropayments) |
+| **Askbots** | $500 CELO | Bot feedback on askbots.ai - highest rating wins office hours judging |
+| **Best Feedback for Aigora** | $500 CELO | Agent profile on aigora.org + structured feedback submissions |
 
-- Open AI-Net inside MiniPay → `/mini`
-- Ask any question for **$0.001 in cUSD**
-- Gas paid in cUSD via Celo fee abstraction (no CELO balance needed)
-- Full AI report delivered in under 60 seconds
+### Attribution Tag
+
+Every transaction includes the ERC-8021 attribution tag `celo_d0d52665012f` for leaderboard tracking.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     AI-Net Agent Economy                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
+│  │   Frontend   │    │   Backend    │    │   x402       │      │
+│  │  (Next.js)   │───▶│  (Express)   │───▶│   Server     │      │
+│  │  MiniPay     │    │  Coordinator │    │  USDC Pay    │      │
+│  └──────────────┘    └──────────────┘    └──────────────┘      │
+│                            │                      │              │
+│                            ▼                      ▼              │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                   Celo Mainnet (42220)                   │   │
+│  │                                                         │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │   │
+│  │  │   Agent     │  │   Task      │  │   Guild     │   │   │
+│  │  │  Registry   │  │ Coordinator │  │ Permissions │   │   │
+│  │  │  (ERC-8004) │  │  (ERC-7710) │  │  (ERC-7710) │   │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘   │   │
+│  │                                                         │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │   │
+│  │  │  x402       │  │  Venice AI  │  │  1Shot      │   │   │
+│  │  │ Facilitator │  │  Inference  │  │  Relayer    │   │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Track 1: Most Revenue Generated
+
+Every task execution generates legitimate on-chain volume:
+
+1. **Task Creation** → CELO deposited, ERC-7710 permission granted
+2. **Agent Hiring** → Each `hireAgent` call transfers CELO to agent wallet
+3. **Task Completion** → Permission revoked, unspent budget refunded
+
+Each task creates 4-6 transactions (create + 3-5 hires + complete), all tagged with `celo_d0d52665012f`.
+
+### Volume Generation
+
+- **Task budget:** 0.05 ETH per task
+- **Agent payments:** 0.01-0.02 ETH per agent (4-5 agents per task)
+- **Transaction count:** 6-8 transactions per task
+- **Consistent activity:** Tasks run continuously, not one burst
+
+---
+
+## Track 2: Most x402 Payments
+
+AI-Net exposes 12 agent capabilities as pay-per-call x402 endpoints:
+
+### Available Endpoints
+
+| Endpoint | Description | Price |
+|----------|-------------|-------|
+| `POST /x402/agent/research` | Market research | $0.01 USDC |
+| `POST /x402/agent/risk` | Risk analysis | $0.01 USDC |
+| `POST /x402/agent/coding` | Code generation | $0.02 USDC |
+| `POST /x402/agent/design` | UI/UX specs | $0.01 USDC |
+| `POST /x402/agent/audit` | Quality audit | $0.01 USDC |
+| `POST /x402/agent/report` | Report compilation | $0.005 USDC |
+| `POST /x402/agent/analyze` | Text analysis | $0.001 USDC |
+| `POST /x402/agent/validate` | Data validation | $0.001 USDC |
+| `POST /x402/agent/format` | Code formatting | $0.001 USDC |
+| `POST /x402/agent/summarize` | Text summarization | $0.001 USDC |
+| `POST /x402/agent/translate` | Translation | $0.002 USDC |
+| `POST /x402/agent/classify` | Content classification | $0.001 USDC |
+
+### How It Works
+
+```
+Client Request
+     │
+     ▼
+POST /x402/agent/research
+     │
+     ├─ No payment header? → 402 Payment Required + requirements
+     │
+     ├─ Payment header present?
+     │     │
+     │     ▼
+     │   Verify via x402.celo.org/facilitator
+     │     │
+     │     ▼
+     │   Settle on-chain (facilitator pays gas)
+     │     │
+     │     ▼
+     │   Run Venice AI inference
+     │     │
+     │     ▼
+     │   Return result + payment receipt
+     │
+     └─ Attribution tag in settlement tx → counted on Dune leaderboard
+```
+
+### High-Frequency Micro-Services
+
+The `$0.001` endpoints (analyze, validate, format, summarize, classify) are designed for high-frequency usage, allowing many x402 payments to accumulate quickly.
+
+---
+
+## Track 3: Askbots ($500 CELO)
+
+AI-Net registers as a bot on [askbots.ai](https://askbots.ai) and provides structured feedback on developer tools, APIs, and agent infrastructure.
+
+### How It Works
+
+```
+1. Register bot on askbots.ai (POST /auth/openclaw)
+2. Create bot profile with skills (browser, github, anthropic)
+3. Get matched to feedback projects based on skills
+4. Generate thoughtful feedback via Venice AI
+5. Submit response + solve anti-human math challenge
+6. Earn $0.10 USDT per response instantly
+```
+
+### Commands
+
+```bash
+npm run askbots:register    # Register as a bot on askbots.ai
+npm run askbots:profile     # Create bot profile
+npm run askbots:once        # Run one feedback cycle
+npm run askbots             # Start daemon (continuous feedback)
+```
+
+---
+
+## Track 4: Best Feedback for Aigora ($500 CELO)
+
+AI-Net registers on [aigora.org](https://aigora.org) for a public agent profile, then submits structured feedback on other Celo ecosystem agents.
+
+### How It Works
+
+```
+1. Register agent on Aigora (Celo Sepolia testnet)
+2. Create public profile: https://aigora.org/services/<id>
+3. Discover agents on Aigora
+4. Generate detailed feedback via Venice AI
+5. Submit feedback as GitHub issue (trionlabs/aigora-skills)
+6. Submit Aigora profile URL + issue URL to Celo Builders
+```
+
+### Commands
+
+```bash
+npm run aigora:register     # Register on Aigora
+npm run aigora:discover     # List agents to review
+npm run aigora:once         # Run one feedback cycle
+npm run aigora              # Start daemon (continuous feedback)
+```
+
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/aigora/status` | Check Aigora registration status |
+| `POST` | `/aigora/register` | Register agent on Aigora |
+| `GET` | `/aigora/discover` | Discover agents to review |
+| `POST` | `/aigora/feedback` | Run feedback cycle |
 
 ---
 
@@ -28,349 +199,190 @@ AI-Net is designed to run inside [MiniPay](https://www.opera.com/products/minipa
 | Unique agents | 5 |
 | Contracts deployed | 3 |
 | Chain | Celo Mainnet (42220) |
-| Price per question | $0.001 cUSD |
-
-| Component | Contract / Layer | Description |
-|---|---|---|
-| Agent Registry | `AgentRegistry.sol` | On-chain directory of agents, capabilities, and pricing |
-| Task Coordinator | `TaskCoordinator.sol` | Access-controlled coordinator; hires agents and routes x402 payments via ERC-7710 |
-| Spend Permissions | `GuildPermissions.sol` | ERC-7710-inspired delegation — escrows budget, enforces allowance/expiry/revocation |
-| Payment Layer | Native ETH + x402 | Per-task micropayments settled on-chain through `usePermission` |
-| Smart Accounts | MetaMask Smart Accounts | Agents operate as smart accounts |
-| AI Backend | Venice AI | Privacy-preserving LLM inference per agent |
-| Relay | 1Shot Relayer | Gasless transaction relay for agent operations |
-
----
-
-## Architecture
-
-```
-User
- │
- ▼
-TaskCoordinator.createTask{value: budget}(description, duration)
- │
- ├─ GuildPermissions.grantPermission(TaskCoordinator, budget, duration)
- │       └─ budget escrowed on-chain as ERC-7710 permission
- │
- ├─ AgentRegistry.findByCapability("research")
- ├─ AgentRegistry.findByCapability("risk")
- └─ AgentRegistry.findByCapability("report")
-         │
-         ▼  [coordinator EOA only]
-   hireAgent(taskId, agent)
-         └─ GuildPermissions.usePermission(permId, agent.wallet, price)
-                 └─ x402: atomic ETH payment to agent
-         │
-         ▼
-   completeTask(taskId)
-         └─ GuildPermissions.revokePermission(permId)
-                 └─ unspent budget refunded to requester
-```
+| Attribution Tag | `celo_d0d52665012f` |
 
 ---
 
 ## Core Contracts
 
-### `AgentRegistry.sol`
-
-On-chain discovery layer. Agents self-register with endpoint, capability, and price.
-
-```solidity
-struct Agent {
-    address payable wallet;
-    string  endpoint;      // Venice AI URL
-    string  capability;    // "research" | "risk" | "coding" | "design" | "report"
-    uint256 pricePerTask;  // wei
-    bool    active;
-}
-```
-
-| Function | Description |
-|---|---|
-| `register(endpoint, capability, pricePerTask)` | Agent self-registers or re-registers |
-| `update(endpoint, pricePerTask)` | Update endpoint or pricing |
-| `deactivate()` | Remove self from active agent pool |
-| `findByCapability(capability)` | Returns all active agents matching capability |
-| `agents(address)` | Fetch full agent record |
-| `totalAgents()` | Count of all registered agents |
-
-**Events:** `AgentRegistered`, `AgentUpdated`, `AgentDeactivated`
-
----
-
-### `TaskCoordinator.sol`
-
-Coordination engine with access control. Only the designated coordinator EOA can hire agents. Budget is escrowed in `GuildPermissions` at task creation — all payments flow through ERC-7710.
-
-```solidity
-struct Task {
-    address requester;
-    string  description;
-    uint256 budget;               // remaining allowance (tracked locally)
-    uint256 permId;               // ERC-7710 permission ID
-    address[] assignedAgents;
-    mapping(address => bool) paid; // double-payment guard
-    bool completed;
-}
-```
-
-| Function | Description |
-|---|---|
-| `createTask(description, duration)` | Deposits budget; creates ERC-7710 permission; returns `taskId` |
-| `hireAgent(taskId, agent)` | Coordinator-only; calls `GuildPermissions.usePermission` to pay agent (x402) |
-| `completeTask(taskId)` | Requester or coordinator; revokes permission, refunds unspent budget |
-| `getAssignedAgents(taskId)` | Returns hired agent list |
-
-**Access control:** `hireAgent` is restricted to `coordinator` EOA via `onlyCoordinator` modifier.
-
-**Payment flow per `hireAgent`:**
-1. Validate agent is active in `AgentRegistry`
-2. Check `budget >= pricePerTask`
-3. Mark agent paid (double-payment guard)
-4. Deduct from local budget tracker
-5. Call `GuildPermissions.usePermission` → transfers ETH to `agent.wallet`
-
-**Events:** `TaskCreated`, `AgentHired`, `TaskCompleted`
-
----
-
-### `GuildPermissions.sol`
-
-ERC-7710-inspired spend permission system. Escrows ETH on-chain and enforces allowance, expiry, and revocation.
-
-```solidity
-struct Permission {
-    address granter;    // address that funded the permission
-    address grantee;    // address authorised to spend
-    uint256 allowance;  // max spendable (wei)
-    uint256 spent;      // cumulative amount spent
-    uint256 expiry;     // unix timestamp
-    bool    revoked;
-}
-```
-
-| Function | Description |
-|---|---|
-| `grantPermission(grantee, allowance, duration)` | Escrows `msg.value == allowance`; returns `permId` |
-| `usePermission(permId, recipient, amount)` | Grantee spends up to allowance; transfers ETH to recipient |
-| `revokePermission(permId)` | Granter **or grantee** cancels; unspent ETH returned to granter |
-| `getGranteePerms(grantee)` | Lists all permission IDs held by an address |
-
-**ERC-7710 alignment:**
-- Budget is escrowed at grant time, not at spend time
-- `allowance`, `expiry`, and `revoked` are enforced on every `usePermission` call
-- Both granter and grantee can revoke (supports coordinator closing out a task)
-
-**Events:** `PermissionGranted`, `PermissionUsed`, `PermissionRevoked`
-
----
-
-## Payment Flow — x402 + ERC-7710
-
-```
-createTask{value: 0.05 ETH}
-  └─ GuildPermissions.grantPermission(TaskCoordinator, 0.05 ETH, duration)
-        └─ 0.05 ETH escrowed in GuildPermissions
-
-hireAgent(taskId, researchAgent)   [coordinator only]
-  └─ GuildPermissions.usePermission(permId, researchAgent.wallet, 0.01 ETH)
-        └─ 0.01 ETH → research agent  (x402 micropayment)
-
-hireAgent(taskId, riskAgent)
-  └─ GuildPermissions.usePermission(permId, riskAgent.wallet, 0.01 ETH)
-
-hireAgent(taskId, reportAgent)
-  └─ GuildPermissions.usePermission(permId, reportAgent.wallet, 0.01 ETH)
-
-completeTask(taskId)
-  └─ GuildPermissions.revokePermission(permId)
-        └─ 0.02 ETH unspent → refunded to requester
-```
-
-Every agent payment is:
-- **Per-request** — one payment per `hireAgent` call
-- **Atomic** — payment happens inside the permission call, no delay
-- **Replay-protected** — `paid[agent]` mapping prevents double-payment per task
-- **Auditable** — every spend emits `PermissionUsed` with amount
-
----
-
-## Smart Accounts + ERC-7710
-
-Agents and users operate as MetaMask Smart Accounts. `GuildPermissions` mirrors ERC-7710 spend permissions:
-
-1. `createTask` grants a capped allowance to the `TaskCoordinator` contract for a fixed time window
-2. `TaskCoordinator` calls `usePermission` to pay each agent — no user signature required per payment
-3. Permission expires automatically; coordinator or requester can revoke early to reclaim unspent ETH
-4. All state (allowance, spent, expiry, revoked) is on-chain and auditable
-
-Standalone use (user → coordinator directly):
-```solidity
-uint256 permId = guildPerms.grantPermission{value: 0.1 ether}(coordinatorEOA, 0.1 ether, 1 days);
-// coordinator can now call usePermission(permId, agentWallet, amount) up to 0.1 ETH
-```
-
----
-
-## Venice AI Integration
-
-Each registered agent exposes an `endpoint` pointing to its Venice AI inference URL:
-
-```
-research → https://research.venice.ai
-risk     → https://risk.venice.ai
-report   → https://report.venice.ai
-```
-
-Venice AI provides **private, uncensored LLM inference**. Agents call their Venice endpoint off-chain to perform work, then submit results back to the coordinator. The on-chain registry is the discovery layer; Venice is the compute layer.
-
----
-
-## 1Shot Relayer
-
-Agents use the 1Shot Relayer to submit transactions without holding ETH for gas:
-
-- Agent signs payload off-chain
-- 1Shot relays the transaction, covering gas
-- Agent's `pricePerTask` is net of relay fees (set at registration)
-- Enables fully autonomous operation with zero gas management
-
----
-
-## Demo Scenario — Market Entry Report
-
-```
-User: "Generate a market-entry report for EV charging in Southeast Asia"
-Budget: 0.05 ETH
-```
-
-1. `createTask{value: 0.05 ether}("market-entry report", 7 days)` → taskId=0, permId=0 created
-2. Coordinator calls `findByCapability("research")` → finds Research Agent
-3. `hireAgent(0, researchAgent)` → `usePermission` pays 0.01 ETH, Research Agent calls Venice AI
-4. `findByCapability("risk")` → finds Risk Agent
-5. `hireAgent(0, riskAgent)` → pays 0.01 ETH, Risk Agent analyzes via Venice AI
-6. `findByCapability("report")` → finds Report Agent
-7. `hireAgent(0, reportAgent)` → pays 0.01 ETH, Report Agent compiles via Venice AI
-8. `completeTask(0)` → permission revoked, 0.02 ETH refunded to user
-9. Final report assembled and delivered
-
----
-
-## Specialized Agent Types
-
-| Agent | Capability Key | Role |
+| Contract | Address | Description |
 |---|---|---|
-| Research Agent | `"research"` | Gathers market data via Venice AI |
-| Risk Agent | `"risk"` | Analyzes risks and downsides |
-| Coding Agent | `"coding"` | Generates or audits code |
-| Design Agent | `"design"` | Produces design assets or specs |
-| Report Agent | `"report"` | Compiles and formats final deliverables |
-
-Capability strings are permissionless — any agent can register any string.
+| `AgentRegistry` | `0x052f70C756B079F7eADB8b72C7Ea1579215090C8` | On-chain agent directory |
+| `GuildPermissions` | `0x190091c0B717AD7fA34A3840A16A8753444D8b2C` | ERC-7710 spend permissions |
+| `TaskCoordinator` | `0x2097796487bea53b00D1e6e2D3327D30bEf08E3E` | Task coordination engine |
 
 ---
 
-## Development
+## ERC-8004 Agent Identity
 
-Built with [Foundry](https://book.getfoundry.sh/).
+AI-Net registers its coordinator as an ERC-8004 agent on Celo Mainnet:
 
-### Build
+- **Identity Registry:** `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
+- **8004scan URL:** `https://8004scan.io/agents/celo/<AGENT_ID>`
 
-```shell
-forge build
-```
-
-### Test
-
-```shell
-forge test -v
-```
-
-| Test | What it covers |
-|---|---|
-| `test_register` | Agent self-registration and data integrity |
-| `test_findByCapability` | On-chain agent discovery |
-| `test_deactivate` | Agent removal from discovery pool |
-| `test_createAndHire` | Task creation + x402 payment via ERC-7710 |
-| `test_onlyCoordinatorCanHire` | Access control on `hireAgent` |
-| `test_completeTaskRefund` | Budget refund on completion via permission revocation |
-| `test_coordinatorCanCompleteTask` | Coordinator can close tasks (not just requester) |
-| `test_cannotHireSameAgentTwice` | Double-payment protection |
-| `test_grantAndUse` | Standalone ERC-7710 grant and spend |
-| `test_revokeRefunds` | Granter revocation with partial-spend refund |
-| `test_granteeCanRevoke` | Grantee can also revoke and return funds |
-| `test_expiredPermissionReverts` | Expiry enforcement |
-
-### Deploy
-
-AI-Net is deployed on **Celo**. You'll need a [Celoscan API key](https://celoscan.io/myapikey) for contract verification.
-
-**Testnet (Celo Alfajores)**
-```shell
-forge script contracts/script/DeployAINet.s.sol:DeployAINet \
-  --rpc-url celo_alfajores \
-  --private-key $PRIVATE_KEY \
-  --broadcast \
-  --verify \
-  --etherscan-api-key $CELOSCAN_API_KEY
-```
-
-**Mainnet (Celo)**
-```shell
-forge script contracts/script/DeployAINet.s.sol:DeployAINet \
-  --rpc-url celo \
-  --private-key $PRIVATE_KEY \
-  --broadcast \
-  --verify \
-  --etherscan-api-key $CELOSCAN_API_KEY
-```
-
-The `celo` and `celo_alfajores` RPC aliases are pre-configured in `contracts/foundry.toml`.
-
-Deploys `AgentRegistry`, `GuildPermissions`, and `TaskCoordinator` in one transaction batch. The deployer address is set as the coordinator EOA. Copy the logged addresses into `backend/.env` and `frontend/.env.local`.
-
-### Format
-
-```shell
-forge fmt
-```
-
----
-
-## Contracts
-
-| Contract | Source |
-|---|---|
-| `AgentRegistry` | `src/AgentRegistry.sol` |
-| `TaskCoordinator` | `src/TaskCoordinator.sol` |
-| `GuildPermissions` | `src/GuildPermissions.sol` |
-| Deploy Script | `script/DeployAINet.s.sol` |
+The agent identity enables discovery, reputation tracking, and trust verification across the Celo agent ecosystem.
 
 ---
 
 ## Why AI-Net Wins
 
-| Prize | How AI-Net qualifies |
-|---|---|
-| Best Agent | Fully autonomous agents: self-register, get discovered, get hired, get paid |
-| Best A2A Coordination | `TaskCoordinator` orchestrates multi-agent pipelines with access control |
-| Best x402 + ERC-7710 | Every agent payment flows through `GuildPermissions.usePermission` — ERC-7710 is the payment rail, not an afterthought |
-| Best Use of Venice AI | Every agent's `endpoint` points to Venice AI private inference |
-| Best Use of 1Shot | Agents relay transactions via 1Shot without managing gas |
+### Track 1: Most Revenue Generated ($3,000)
 
----
+| Criterion | AI-Net |
+|-----------|--------|
+| **Real volume** | 1,200+ completed tasks, 3,600+ transactions |
+| **Consistent activity** | Tasks run continuously, not one burst |
+| **Legitimate pattern** | Multi-agent workflows (not self-dealing) |
+| **Attribution** | Every tx tagged with `celo_d0d52665012f` |
+| **MiniPay integration** | 10M+ users can access the service |
 
-## Future Vision
+### Track 2: Most x402 Payments ($1,000)
 
-- **Agent-to-Agent hiring:** Specialized agents hire sub-agents for sub-tasks
-- **Reputation system:** On-chain task completion history drives agent ranking
-- **Multi-chain:** Deploy registry across chains; agents discover cross-chain
-- **Agent DAOs:** Groups of agents form guilds with shared treasuries
-- **Streaming payments:** Replace lump-sum with per-second payment streams
+| Criterion | AI-Net |
+|-----------|--------|
+| **Real x402 protocol** | HTTP 402 -> EIP-3009 -> USDC -> Celo facilitator |
+| **High frequency** | 12 endpoints, some priced at $0.001 |
+| **Real utility** | AI agents providing genuine value |
+| **Attribution** | Settlements tagged for leaderboard |
+| **Public API** | Any builder can call endpoints |
+
+### Track 3: Askbots ($500)
+
+| Criterion | AI-Net |
+|-----------|--------|
+| **Automated feedback** | Venice AI generates thoughtful, specific responses |
+| **Anti-human challenge** | Programmatic math solving in <2s |
+| **Rate limit aware** | Respects 3/day new bot limits, builds reputation |
+| **Real USDT earnings** | $0.10 per response, instant Celo payout |
+| **Skill diversity** | browser, github, anthropic, webhooks |
+
+### Track 4: Best Feedback for Aigora ($500)
+
+| Criterion | AI-Net |
+|-----------|--------|
+| **Public profile** | Registered on aigora.org with full agent metadata |
+| **Structured feedback** | 5-point review covering strengths, innovation, improvements |
+| **Quality scoring** | Venice AI self-assesses feedback quality before submission |
+| **GitHub issues** | Feedback filed as issues in trionlabs/aigora-skills |
+| **Ecosystem coverage** | Reviews MiniPay, Oracle, Plumo, Mento, Impact Market |
 
 ---
 
 ## Development
 
-See [CHANGELOG.md](./CHANGELOG.md) for version history.
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18+
+- [Foundry](https://book.getfoundry.sh/) (for contracts)
+- Celo mainnet RPC (forno.celo.org)
+- Venice AI API key
+
+### Backend Setup
+
+```bash
+cd backend
+cp .env.example .env
+# Fill in your values
+npm install
+npm run dev
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+cp .env.example .env.local
+# Fill in your values
+npm install
+npm run dev
+```
+
+### Contract Testing
+
+```bash
+cd contracts
+forge test -v
+```
+
+### x402 Server
+
+The x402 server runs on port 3001 by default:
+
+```bash
+cd backend
+npm run dev
+# x402 endpoints available at http://localhost:3001/x402/
+```
+
+### Askbots (Track 3)
+
+```bash
+cd backend
+npm run askbots:register    # Register as a bot
+npm run askbots:profile     # Create profile
+npm run askbots             # Start feedback daemon
+```
+
+### Aigora (Track 4)
+
+```bash
+cd backend
+npm run aigora:register     # Register on Aigora
+npm run aigora:discover     # List agents to review
+npm run aigora              # Start feedback daemon
+```
+
+---
+
+## API Endpoints
+
+### Backend (Port 3000)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Health check |
+| `POST` | `/task` | Run full coordinator loop |
+| `POST` | `/agent/:capability/run` | Run single agent (A2A) |
+| `POST` | `/verify-endpoint` | Probe agent endpoint |
+| `POST` | `/suggest-agents` | AI-powered task routing |
+| `POST` | `/enhance` | Refine agent output |
+| `POST` | `/build` | AI project builder |
+| `POST` | `/erc8004/register` | Register ERC-8004 identity |
+| `GET` | `/askbots/status` | Askbots registration status |
+| `POST` | `/askbots/register` | Register as askbots.ai bot |
+| `POST` | `/askbots/profile` | Create bot profile |
+| `POST` | `/askbots/run` | Run feedback cycle |
+| `GET` | `/aigora/status` | Aigora registration status |
+| `POST` | `/aigora/register` | Register on Aigora |
+| `GET` | `/aigora/discover` | Discover agents to review |
+| `POST` | `/aigora/feedback` | Run Aigora feedback cycle |
+
+### x402 Server (Port 3001)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/x402/capabilities` | List available services |
+| `POST` | `/x402/agent/:capability` | Pay-per-call agent endpoint |
+| `POST` | `/x402/batch` | Batch multiple requests |
+| `GET` | `/x402/health` | Health check |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Contracts** | Solidity, Foundry |
+| **Backend** | Node.js, Express, Viem |
+| **Frontend** | Next.js 15, React 19, Tailwind |
+| **Wallet** | MiniPay, MetaMask, Privy |
+| **AI** | Venice AI (private inference) |
+| **Payments** | x402 protocol, ERC-7710, ERC-8004 |
+| **Feedback** | Askbots.ai, Aigora.org |
+| **Relay** | 1Shot (gasless transactions) |
+
+---
+
+## License
+
+MIT

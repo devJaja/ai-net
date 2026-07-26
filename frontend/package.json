@@ -9,17 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@celo/rainbowkit-celo": "^1.2.1",
-    "@fashman_jaja/ai-net-sdk": "^1.0.0",
-    "@metamask/smart-accounts-kit": "^1.6.0",
-    "@privy-io/react-auth": "^3.29.2",
+
+
     "clsx": "2.1.1",
     "lucide-react": "0.511.0",
-    "next": "15.3.3",
+    "next": "15.5.21",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwind-merge": "2.4.0",
-    "viem": "2.52.0"
+    "viem": "2.52.0",
+    "ws": "8.18.0"
   },
   "devDependencies": {
     "@types/node": "20.14.9",

@@ -1,21 +1,7 @@
 {
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/next"
-    },
-    {
-      "src": "api/**/*.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/backend(/.*)?",
-      "dest": "/api/backend/[[...path]]"
-    }
-  ],
-  "installCommand": "npm install --legacy-peer-deps && npm install --prefix ../backend",
+  "installCommand": "npm install --legacy-peer-deps && npm install --prefix ../backend --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
   "headers": [
     {
       "source": "/manifest.json",

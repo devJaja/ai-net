@@ -38,6 +38,10 @@ export function parseError(e: unknown): string {
   if (/no wallet|wallet not found|window\.ethereum/i.test(raw))
     return "No wallet detected. Open inside MiniPay or install MetaMask.";
 
+  // Wallet extension internal error (e.g. MetaMask emit failure)
+  if (/emit|listener/i.test(raw))
+    return "Wallet extension error. Please refresh the page and try again.";
+
   // Truncate anything else at 120 chars — don't dump a stack trace on users
   return raw.length > 120 ? raw.slice(0, 120) + "…" : raw;
 }

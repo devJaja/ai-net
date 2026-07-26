@@ -1,4 +1,4 @@
-import { veniceChat } from "./venice.js";
+import { veniceChat } from "./venice";
 
 const SYSTEM = `You are a senior software engineer. Output ONLY complete, runnable code — no explanations, no theory, no markdown prose.
 
