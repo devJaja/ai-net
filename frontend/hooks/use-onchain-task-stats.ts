@@ -45,3 +45,5 @@ export function useOnChainStats() {
 // Enhancement: feat(tasks): add pagination for large on-chain task lists
 
 // Enhancement: feat(payments): replace localStorage tx rows with on-chain events
+
+// Enhancement: feat(payments): show TaskCreated as outgoing payment
