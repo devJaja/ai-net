@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           isMiniPay={isMiniPay}
           miniPayAddress={miniPayAddress}
         />
-        <main className="flex-1 p-3 md:p-6 overflow-auto pb-24">{children}</main>
+        <main className="flex-1 main-pad overflow-auto pb-28 md:pb-24">{children}</main>
       </div>
       <MiniPayBanner />
     </div>

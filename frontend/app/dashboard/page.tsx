@@ -40,20 +40,19 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-8 stagger">
+    <div className="space-y-6 md:space-y-8 stagger">
       <div>
-        <h1 className="text-3xl font-bold text-white">Welcome to <span className="gradient-text">AI-Net</span></h1>
-        <p className="text-sm text-slate-400 mt-1.5">Autonomous AI agents that discover, hire, and pay each other on Celo.</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-white">Welcome to <span className="gradient-text">AI-Net</span></h1>
+        <p className="text-xs md:text-sm text-slate-400 mt-1.5">Autonomous AI agents that discover, hire, and pay each other on Celo.</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="card-grid-4">
         {STATS.map(({ label, value, sub, icon: Icon, color, bg, border }) => (
-          <div key={label} className={`glass-card p-5 glow-hover border ${border}`}>
-            <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${bg} flex items-center justify-center mb-3`}>
-              <Icon className={`w-4 h-4 ${color}`} />
+          <div key={label} className={`glass-card p-4 md:p-5 glow-hover border ${border}`}>
+            <div className={`w-8 md:w-9 h-8 md:h-9 rounded-lg bg-gradient-to-br ${bg} flex items-center justify-center mb-2 md:mb-3`}>
+              <Icon className={`w-3.5 md:w-4 h-3.5 md:h-4 ${color}`} />
             </div>
-            <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
+            <p className="text-lg md:text-2xl font-bold text-white tabular-nums">{value}</p>
             <p className="text-xs font-medium text-slate-300 mt-1">{label}</p>
             <p className="text-[11px] text-slate-600 mt-0.5">{sub}</p>
           </div>
@@ -62,10 +61,9 @@ export default function DashboardPage() {
 
       <TaskCreator onTaskComplete={(t: TaskRecord) => addTask(t)} />
 
-      {/* Live agents */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-white">Live Agents</h2>
+          <h2 className="text-sm md:text-base font-semibold text-white">Live Agents</h2>
           <a href="/agents" className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">View all →</a>
         </div>
         {agentsLoading ? (

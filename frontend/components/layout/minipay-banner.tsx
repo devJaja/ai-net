@@ -32,7 +32,7 @@ export function MiniPayBanner() {
   if (!isMiniPay || pathname === "/mini") return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent z-50">
+    <div className="fixed bottom-0 left-0 right-0 p-4 safe-bottom bg-gradient-to-t from-black/90 to-transparent z-50">
       <div className="glass-card p-4 text-center space-y-2">
         <p className="text-sm text-slate-400">
           {taskCount !== null ? `${taskCount} tasks completed on AI-Net` : "Loading…"}

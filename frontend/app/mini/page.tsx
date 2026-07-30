@@ -233,7 +233,7 @@ export default function MiniPage() {
       </header>
 
       {/* ── Main ── */}
-      <main className="flex-1 px-4 py-5 space-y-5 overflow-auto pb-8">
+      <main className="flex-1 px-3 md:px-4 py-5 space-y-5 overflow-auto pb-8 safe-bottom">
 
         {/* ── Value prop (shown on idle) ── */}
         {step === "idle" && !result && (

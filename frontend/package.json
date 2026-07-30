@@ -9,8 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-
-
+    "@tanstack/react-query": "^5.101.4",
+    "@web3modal/wagmi": "^5.1.11",
+    "@x402/svm": "^2.20.0",
     "clsx": "2.1.1",
     "lucide-react": "0.511.0",
     "next": "15.5.21",
@@ -18,6 +19,7 @@
     "react-dom": "^19.1.0",
     "tailwind-merge": "2.4.0",
     "viem": "2.52.0",
+    "wagmi": "^2.19.5",
     "ws": "8.18.0"
   },
   "devDependencies": {

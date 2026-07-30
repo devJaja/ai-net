@@ -24,24 +24,24 @@ const TASK_COORDINATOR_ABI = [
 
 const AGENT_HIRED_ABI = {
   name: "AgentHired",
-  type: "event" as const,
+  type: "event",
   inputs: [
     { name: "taskId", indexed: true, type: "uint256" },
     { name: "agent", indexed: true, type: "address" },
     { name: "amount", type: "uint256" },
   ],
-};
+} as const;
 
 const TASK_CREATED_ABI = {
   name: "TaskCreated",
-  type: "event" as const,
+  type: "event",
   inputs: [
     { name: "taskId", indexed: true, type: "uint256" },
     { name: "requester", indexed: true, type: "address" },
     { name: "budget", type: "uint256" },
     { name: "permId", type: "uint256" },
   ],
-};
+} as const;
 
 function makeClient(): PublicClient {
   return createPublicClient({

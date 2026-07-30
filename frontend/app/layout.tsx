@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
+import { Web3Provider } from "@/components/providers/web3-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,7 +46,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         <div className="bg-mesh" />
-        <AppShell>{children}</AppShell>
+        <Web3Provider>
+          <AppShell>{children}</AppShell>
+        </Web3Provider>
       </body>
     </html>
   );

@@ -34,7 +34,7 @@ export function Sidebar({ mobileOpen, onClose }: Props) {
             <p className="text-[11px] text-slate-500 mt-0.5">Celo Mainnet</p>
           </div>
         )}
-        <button onClick={onClose} className="ml-auto lg:hidden text-slate-500 hover:text-white p-1 rounded-lg hover:bg-white/5">
+        <button onClick={onClose} className="ml-auto lg:hidden text-slate-500 hover:text-white tap-target rounded-lg hover:bg-white/5">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -74,7 +74,7 @@ export function Sidebar({ mobileOpen, onClose }: Props) {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-          <aside className="absolute left-0 top-0 h-full w-56 border-r border-white/[0.06] flex flex-col"
+          <aside className="absolute left-0 top-0 h-full w-64 max-w-[85vw] border-r border-white/[0.06] flex flex-col"
             style={{ background: "rgba(7,7,15,0.98)" }}>
             {content}
           </aside>

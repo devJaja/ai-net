@@ -14,19 +14,20 @@ const AGENTS_ONCHAIN = [
 
 export default function SettingsPage() {
   return (
-    <div className="space-y-8 animate-slide-up max-w-2xl">
+    <div className="space-y-6 md:space-y-8 animate-slide-up max-w-2xl">
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Settings <span className="text-base font-normal text-slate-500">/ Configuration</span></h1>
-        <p className="text-zinc-400">Network configuration and deployed contracts</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
+          Settings <span className="text-sm md:text-base font-normal text-slate-500">/ Configuration</span>
+        </h1>
+        <p className="text-sm text-zinc-400">Network configuration and deployed contracts</p>
       </div>
 
-      {/* Network */}
-      <div className="glass-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Network</h2>
-        <div className="grid grid-cols-2 gap-4 text-sm">
+      <div className="glass-card p-4 md:p-6 space-y-4">
+        <h2 className="text-base md:text-lg font-semibold text-white">Network</h2>
+        <div className="grid grid-cols-2 gap-3 md:gap-4 text-xs md:text-sm">
           <div><p className="text-zinc-500 mb-1">Chain</p><p className="text-white">Celo Mainnet</p></div>
           <div><p className="text-zinc-500 mb-1">Chain ID</p><p className="text-white">{CHAIN_ID}</p></div>
-          <div className="col-span-2"><p className="text-zinc-500 mb-1">RPC</p><p className="text-cyan-400 font-mono text-xs">https://forno.celo.org</p></div>
+          <div className="col-span-2"><p className="text-zinc-500 mb-1">RPC</p><p className="text-cyan-400 font-mono text-xs break-all">https://forno.celo.org</p></div>
           <div className="col-span-2"><p className="text-zinc-500 mb-1">Explorer</p>
             <a href="https://celoscan.io" target="_blank" rel="noreferrer" className="text-cyan-400 font-mono text-xs hover:underline flex items-center gap-1">
               https://celoscan.io <ExternalLink className="w-3 h-3" />
@@ -35,9 +36,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Contracts */}
-      <div className="glass-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Deployed Contracts</h2>
+      <div className="glass-card p-4 md:p-6 space-y-4">
+        <h2 className="text-base md:text-lg font-semibold text-white">Deployed Contracts</h2>
         <div className="space-y-3">
           {[
             { label: "AgentRegistry",    addr: CONTRACTS.AGENT_REGISTRY    },
@@ -46,9 +46,9 @@ export default function SettingsPage() {
             { label: "AgentJudge",       addr: CONTRACTS.AGENT_JUDGE       },
           ].map(({ label, addr }) => (
             <div key={label} className="flex items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-white">{label}</p>
-                <code className="text-xs text-zinc-500">{addr}</code>
+                <code className="text-xs text-zinc-500 break-all">{addr}</code>
               </div>
               <a href={`https://celoscan.io/address/${addr}`} target="_blank" rel="noreferrer"
                 className="text-zinc-500 hover:text-cyan-400 transition-colors flex-shrink-0">
@@ -59,15 +59,14 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Registered agents */}
-      <div className="glass-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Registered Agents</h2>
+      <div className="glass-card p-4 md:p-6 space-y-4">
+        <h2 className="text-base md:text-lg font-semibold text-white">Registered Agents</h2>
         <div className="space-y-3">
           {AGENTS_ONCHAIN.map(a => (
-            <div key={a.capability} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="px-2 py-0.5 text-xs bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-md capitalize">{a.capability}</span>
-                <code className="text-xs text-zinc-400">{a.address.slice(0,10)}…{a.address.slice(-6)}</code>
+            <div key={a.capability} className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 xs:gap-3">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                <span className="px-2 py-0.5 text-xs bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 rounded-md capitalize flex-shrink-0">{a.capability}</span>
+                <code className="text-xs text-zinc-400 truncate">{a.address.slice(0,10)}…{a.address.slice(-6)}</code>
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <span className="text-xs text-zinc-500">{a.price}</span>
@@ -81,9 +80,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Pipeline */}
-      <div className="glass-card p-6 space-y-4">
-        <h2 className="text-lg font-semibold text-white">Default Pipeline</h2>
+      <div className="glass-card p-4 md:p-6 space-y-4">
+        <h2 className="text-base md:text-lg font-semibold text-white">Default Pipeline</h2>
         <div className="flex flex-wrap gap-2">
           {CAPABILITIES.map(cap => (
             <span key={cap} className="px-3 py-1.5 text-xs border border-white/10 bg-white/5 text-zinc-400 rounded-lg capitalize">{cap}</span>

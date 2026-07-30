@@ -12,6 +12,13 @@ const nextConfig = {
     ];
   },
   webpack(config) {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      "@react-native-async-storage/async-storage": false,
+      "pino-pretty": false,
+      "lokijs": false,
+      "encoding": false,
+    };
     return config;
   },
 };
